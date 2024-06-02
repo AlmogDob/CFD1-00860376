@@ -1,0 +1,12 @@
+interval:
+0 1
+double?
+yes
+N:
+100
+dirichlet?
+yes
+0.0 1.0
+neumann?
+no
+1.0 -1.0
