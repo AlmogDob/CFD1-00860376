@@ -1,12 +1,12 @@
 interval:
 0 1
 double?
-no
+yes
 N:
 1000
 dirichlet?
-yes
+no
 0.0 1.0
 neumann?
-no
+yes
 1.0 -1.0

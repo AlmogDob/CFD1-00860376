@@ -463,7 +463,9 @@ double D_d(double xi)
     return d_d(xi);
 }
 
-/* This function creats the vectors needed to call the solver; double version */
+/* This function creats the vectors needed to call the solver; double version
+argument list: A_vec_d, B_vec_d, C_vec_d - are the diagonals of the LHS matrix.
+               D_vec_d - the RHS */
 void fill_matrix_d(double *A_vec_d, double *B_vec_d, double *C_vec_d, double *D_vec_d)
 {
     int i;
@@ -488,53 +490,39 @@ void fill_matrix_d(double *A_vec_d, double *B_vec_d, double *C_vec_d, double *D_
         for (i = 0; i < N+1; i++) { /* going over all the points */
             /* LHS */
             if (i != 0) {   /* there is no A_vec[0] in neumann */
-                if (i == N) {   /* A_vec[N] is different */
-                    A_vec_d[i] = A_d(x_d(i)) + C_d(x_d(i));
-                } else {
-                    A_vec_d[i] = A_d(x_d(i));
-                }
+                A_vec_d[i] = A_d(x_d(i));
             }
             B_vec_d[i] = B_d(x_d(i));
-            if (i != N) {   /* there is no A_vec[N] in neumann */
-                if (i == 0) {   /* C_vec[0] is different */
-                    C_vec_d[i] = A_d(x_d(i)) + C_d(x_d(i));
-                } else {
-                    C_vec_d[i] = C_d(x_d(i));
-                }
+            if (i != N) {   /* there is no C_vec[N] in neumann */
+                C_vec_d[i] = C_d(x_d(i));
             }
             /* RHS */
-            D_vec_d[0] = D_d(x_d(0)) + 2 * h_d * A_d(x_d(0)) * Y_prim_start_d;
-            if (i > 0 && i < N) {
-                D_vec_d[i] = D_d(x_d(i));
-            }
-            D_vec_d[N] = D_d(x_d(N)) - 2 * h_d * C_d(x_d(N)) * Y_prim_end_d;
+            D_vec_d[i] = D_d(x_d(i));
+            boundary_conditions_d(A_vec_d, B_vec_d, C_vec_d, D_vec_d);
         }
     }
 }
 
-/* This function creats the vectors needed to call the solver; float version */
+/* This function creats the vectors needed to call the solver; float version
+argument list: A_vec_d, B_vec_d, C_vec_d - are the diagonals of the LHS matrix.
+               D_vec_d - the RHS */
 void fill_matrix_f(float *A_vec_f, float *B_vec_f, float *C_vec_f, float *D_vec_f)
 {
     int i;
 
     if (to_dirichlet) {
-        for (i = 1; i < N+1; i++) { /* going over all the points */
-            if (i != N) {   /* for dirichlet we don't need the N's index */
-                /* LHS */
-                if (i != 1) {   /* there is no A1 in dirichlet */
-                    A_vec_f[i] = A_f(x_f(i));
-                }
-                B_vec_f[i] = B_f(x_f(i));
-                if (i != N-1) {
-                    C_vec_f[i] = C_f(x_f(i));
-                }
-                /* RHS */
-                D_vec_f[1] = D_f(x_f(1)) - A_f(x_f(1)) * Y_start_f;
-                if (i > 1 && i < N-1) {
-                    D_vec_f[i] = D_f(x_f(i));
-                }
-                D_vec_f[N-1] = D_f(x_f(N-1)) - C_f(x_f(N-1)) * Y_end_f;
-            }                
+        for (i = 1; i < N; i++) { /* going over all the points for dirichlet */
+            /* LHS */
+            if (i != 1) {   /* there is no A1 in dirichlet */
+                A_vec_f[i] = A_f(x_f(i));
+            }
+            B_vec_f[i] = B_f(x_f(i));
+            if (i != N-1) { /* there is no C_N-1 in dirichlet*/
+                C_vec_f[i] = C_f(x_f(i));
+            }
+            /* RHS */
+            D_vec_f[i] = D_f(x_f(i));
+            boundary_conditions_f(A_vec_f, B_vec_f, C_vec_f, D_vec_f);
         }
     }
 
@@ -542,33 +530,22 @@ void fill_matrix_f(float *A_vec_f, float *B_vec_f, float *C_vec_f, float *D_vec_
         for (i = 0; i < N+1; i++) { /* going over all the points */
             /* LHS */
             if (i != 0) {   /* there is no A_vec[0] in neumann */
-                if (i == N) {   /* A_vec[N] is different */
-                    A_vec_f[i] = A_f(x_f(i)) + C_f(x_f(i));
-                } else {
-                    A_vec_f[i] = A_f(x_f(i));
-                }
+                A_vec_f[i] = A_f(x_f(i));
             }
             B_vec_f[i] = B_f(x_f(i));
-            if (i != N) {   /* there is no A_vec[N] in neumann */
-                if (i == 0) {   /* C_vec[0] is different */
-                    C_vec_f[i] = A_f(x_f(i)) + C_f(x_f(i));
-                } else {
-                    C_vec_f[i] = C_f(x_f(i));
-                }
+            if (i != N) {   /* there is no C_vec[N] in neumann */
+                C_vec_f[i] = C_f(x_f(i));
             }
             /* RHS */
-            D_vec_f[0] = D_f(x_f(0)) + 2 * h_f * A_f(x_f(i)) * Y_prim_start_f;
-            if (i > 0 && i < N) {
-                D_vec_f[i] = D_f(x_f(i));
-            }
-            D_vec_f[N] = D_f(x_f(N)) - 2 * h_f * C_f(x_f(N)) * Y_prim_end_f;
+            D_vec_f[i] = D_f(x_f(i));
+            boundary_conditions_f(A_vec_f, B_vec_f, C_vec_f, D_vec_f);
         }
     }
 }
 
 /* Set the boundary conditions in the vectors; double version
-argumet list: A_vec_d, B_vec_d, C_vec_d - are the diagonals of the LHS matrix.
-              D_vec_d - the RHS*/
+argument list: A_vec_d, B_vec_d, C_vec_d - are the diagonals of the LHS matrix.
+               D_vec_d - the RHS */
 void boundary_conditions_d(double *A_vec_d, double *B_vec_d, double *C_vec_d, double *D_vec_d)
 {
     if (to_dirichlet) {
@@ -585,8 +562,8 @@ void boundary_conditions_d(double *A_vec_d, double *B_vec_d, double *C_vec_d, do
 }
 
 /* Set the boundary conditions in the vectors; float version
-argumet list: A_vec_d, B_vec_d, C_vec_d - are the diagonals of the LHS matrix.
-              D_vec_d - the RHS*/
+argument list: A_vec_d, B_vec_d, C_vec_d - are the diagonals of the LHS matrix.
+               D_vec_d - the RHS */
 void boundary_conditions_f(float *A_vec_f, float *B_vec_f, float *C_vec_f, float *D_vec_f)
 {
     if (to_dirichlet) {
