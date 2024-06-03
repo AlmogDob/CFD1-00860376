@@ -1,3 +1,20 @@
+/* Example for input file (The order does not matter):
+```
+interval:
+0 1
+double?
+yes
+N:
+100
+dirichlet?
+yes
+0.0 1.0
+neumann?
+no
+1.0 -1.0
+```
+Program call: ./main 'input directory' 'output directory' */
+
 /* In this code every function and variable that have _f or _d in
 it name it means that it uses float and double respectivly */
 
@@ -20,7 +37,6 @@ it name it means that it uses float and double respectivly */
 #define dprintD(expr) printf(#expr " = %g\n", expr)
 
 void read_input(char *dir);
-void allocat_and_fill_memmory(void);
 void output_solution_d(char *dir, double *data);
 void output_solution_f(char *dir, float *data);
 
@@ -43,12 +59,12 @@ double D_d(double xi);
 
 void fill_matrix_d(double *A_vec_d, double *B_vec_d, double *C_vec_d, double *D_vec_d);
 void fill_matrix_f(float *A_vec_f, float *B_vec_f, float *C_vec_f, float *D_vec_f);
+void boundary_conditions_d(double *A_vec_d, double *B_vec_d, double *C_vec_d, double *D_vec_d);
+void boundary_conditions_f(float *A_vec_f, float *B_vec_f, float *C_vec_f, float *D_vec_f);
 
 int tridiag_f(float *a, float *b, float *c, float *d, float *u, int is, int ie);
 int tridiag_d(double *a, double *b, double *c, double *d, double *u, int is, int ie);
 
-double *A_vec_d = NULL, *B_vec_d = NULL, *C_vec_d = NULL, *D_vec_d = NULL, *u_vec_d = NULL; /* vectors for the system of equtions; double version*/
-float *A_vec_f = NULL, *B_vec_f = NULL, *C_vec_f = NULL, *D_vec_f = NULL, *u_vec_f = NULL; /* vectors for the system of equtions; float version*/
 int start = 0, end = 0, to_double = 1, N = -1,  /* interval: [start, end] */
 to_dirichlet = 0, to_neumann = 0;   /* 'flags' for the typ of boundary conditions */
 float h_f = 0.0f, Y_start_f = 0.0f, Y_end_f = 0.0f, /* Y_start = Y0; Y_end = YN */
@@ -58,7 +74,7 @@ Y_prim_start_d = 0.0, Y_prim_end_d = 0.0;
 
 int main(int argc, char const *argv[])
 {
-    int success;
+    int success, i;
 
     /* Geting the input and output directories */
     char input_dir[MAXDIR], output_dir[MAXDIR];
@@ -96,7 +112,47 @@ int main(int argc, char const *argv[])
     // dprintD(Y_prim_end_d);
     /*------------------------------------------------------------*/
 
-    allocat_and_fill_memmory();
+    /* vector memmory allocation and filling with zero */
+    double *A_vec_d = (double *)malloc(sizeof(double) * (N + 1));
+    for (i = 0; i < N+1; i++) {
+        A_vec_d[i] = 0;
+    }
+    double *B_vec_d = (double *)malloc(sizeof(double) * (N + 1));
+    for (i = 0; i < N+1; i++) {
+        B_vec_d[i] = 0;
+    }
+    double *C_vec_d = (double *)malloc(sizeof(double) * (N + 1));
+    for (i = 0; i < N+1; i++) {
+        C_vec_d[i] = 0;
+    }
+    double *D_vec_d = (double *)malloc(sizeof(double) * (N + 1));
+    for (i = 0; i < N+1; i++) {
+        D_vec_d[i] = 0;
+    }
+    double *u_vec_d = (double *)malloc(sizeof(double) * (N + 1));
+    for (i = 0; i < N+1; i++) {
+        u_vec_d[i] = 0;
+    }
+    float *A_vec_f = (float *)malloc(sizeof(float) * (N + 1));
+    for (i = 0; i < N+1; i++) {
+        A_vec_f[i] = 0;
+    }
+    float *B_vec_f = (float *)malloc(sizeof(float) * (N + 1));
+    for (i = 0; i < N+1; i++) {
+        B_vec_f[i] = 0;
+    }
+    float *C_vec_f = (float *)malloc(sizeof(float) * (N + 1));
+    for (i = 0; i < N+1; i++) {
+        C_vec_f[i] = 0;
+    }
+    float *D_vec_f = (float *)malloc(sizeof(float) * (N + 1));
+    for (i = 0; i < N+1; i++) {
+        D_vec_f[i] = 0;
+    }
+    float *u_vec_f = (float *)malloc(sizeof(float) * (N + 1));
+    for (i = 0; i < N+1; i++) {
+        u_vec_f[i] = 0;
+    }
 
     /*------------------------------------------------------------*/
 
@@ -132,7 +188,8 @@ int main(int argc, char const *argv[])
     return 0;
 }
 
-/* sets 'flags' and variables according to the input file */
+/* sets 'flags' and variables according to the input file
+argument list: dir - the directory of the input file */
 void read_input(char *dir)
 {
     FILE *fp = fopen(dir, "rt");
@@ -209,53 +266,9 @@ void read_input(char *dir)
 
 }
 
-/* allocating the vectors and filling with zero */
-void allocat_and_fill_memmory(void)
-{
-    int i;
-    A_vec_d = (double *)malloc(sizeof(double) * (N + 1));
-    for (i = 0; i < N+1; i++) {
-        A_vec_d[i] = 0;
-    }
-    B_vec_d = (double *)malloc(sizeof(double) * (N + 1));
-    for (i = 0; i < N+1; i++) {
-        B_vec_d[i] = 0;
-    }
-    C_vec_d = (double *)malloc(sizeof(double) * (N + 1));
-    for (i = 0; i < N+1; i++) {
-        C_vec_d[i] = 0;
-    }
-    D_vec_d = (double *)malloc(sizeof(double) * (N + 1));
-    for (i = 0; i < N+1; i++) {
-        D_vec_d[i] = 0;
-    }
-    u_vec_d = (double *)malloc(sizeof(double) * (N + 1));
-    for (i = 0; i < N+1; i++) {
-        u_vec_d[i] = 0;
-    }
-    A_vec_f = (float *)malloc(sizeof(float) * (N + 1));
-    for (i = 0; i < N+1; i++) {
-        A_vec_f[i] = 0;
-    }
-    B_vec_f = (float *)malloc(sizeof(float) * (N + 1));
-    for (i = 0; i < N+1; i++) {
-        B_vec_f[i] = 0;
-    }
-    C_vec_f = (float *)malloc(sizeof(float) * (N + 1));
-    for (i = 0; i < N+1; i++) {
-        C_vec_f[i] = 0;
-    }
-    D_vec_f = (float *)malloc(sizeof(float) * (N + 1));
-    for (i = 0; i < N+1; i++) {
-        D_vec_f[i] = 0;
-    }
-    u_vec_f = (float *)malloc(sizeof(float) * (N + 1));
-    for (i = 0; i < N+1; i++) {
-        u_vec_f[i] = 0;
-    }
-}
-
-/* output data; double version */
+/* output data; double version
+argument list: dir - the directory of the output file.
+data - the solution vector */
 void output_solution_d(char *dir, double *data)
 {
     FILE *fp = fopen(dir, "wt");
@@ -294,7 +307,9 @@ void output_solution_d(char *dir, double *data)
 
 }
 
-/* output data; float version */
+/* output data; float version
+argument list: dir - the directory of the output file.
+data - the solution vector */
 void output_solution_f(char *dir, float *data)
 {
     FILE *fp = fopen(dir, "wt");
@@ -333,100 +348,116 @@ void output_solution_f(char *dir, float *data)
 
 }
 
-/* The function a in float*/
+/* The function a in float
+argument list: xi - the point where we want the value of the function */
 float a_f(float xi)
 {
     xi = 1;
     return xi;
 }
 
-/* The function b in float*/
+/* The function b in float
+argument list: xi - the point where we want the value of the function */
 float b_f(float xi)
 {
     return xi;
 }
 
-/* The function c in float*/
+/* The function c in float
+argument list: xi - the point where we want the value of the function */
 float c_f(float xi)
 {
     return xi*xi;
 }
 
-/* The function d in float*/
+/* The function d in float
+argument list: xi - the point where we want the value of the function */
 float d_f(float xi)
 {
     return sinf(2*PI*xi)+ cosf(2*PI*xi);    
 }
 
-/* The function a in double*/
+/* The function a in double
+argument list: xi - the point where we want the value of the function */
 double a_d(double xi)
 {
     xi = 1;
     return xi;
 }
 
-/* The function b in double*/
+/* The function b in double
+argument list: xi - the point where we want the value of the function */
 double b_d(double xi)
 {
     return xi;
 }
 
-/* The function c in double*/
+/* The function c in double
+argument list: xi - the point where we want the value of the function */
 double c_d(double xi)
 {
     return xi*xi;
 }
 
-/* The function d in double*/
+/* The function d in double
+argument list: xi - the point where we want the value of the function */
 double d_d(double xi)
 {
     // printf("d_d = %g\n", sin(2*PI*xi)+ cos(2*PI*xi));    
     return sin(2*PI*xi)+ cos(2*PI*xi);    
 }
 
-/* A from the discrete from of the equation in float */
+/* A from the discrete form of the equation in float
+argument list: xi - the point where we want the value of the function */
 float A_f(float xi)
 {
     return (a_f(xi)/(h_f*h_f) - b_f(xi)/(2*h_f));
 }
 
-/* B from the discrete from of the equation in float */
+/* B from the discrete form of the equation in float
+argument list: xi - the point where we want the value of the function */
 float B_f(float xi)
 {
     return (-2*a_f(xi)/(h_f*h_f) +c_f(xi));
 }
 
-/* C from the discrete from of the equation in float */
+/* C from the discrete form of the equation in float
+argument list: xi - the point where we want the value of the function */
 float C_f(float xi)
 {
     return (a_f(xi)/(h_f*h_f) +b_f(xi)/(2*h_f));
 }
 
-/* D from the discrete from of the equation in float */
+/* D from the discrete form of the equation in float
+argument list: xi - the point where we want the value of the function */
 float D_f(float xi)
 {
     return d_f(xi);
 }
 
-/* A from the discrete from of the equation in double */
+/* A from the discrete form of the equation in double
+argument list: xi - the point where we want the value of the function */
 double A_d(double xi)
 {
     return (a_d(xi)/(h_d*h_d) - b_d(xi)/(2*h_d));
 }
 
-/* B from the discrete from of the equation in double */
+/* B from the discrete form of the equation in double
+argument list: xi - the point where we want the value of the function */
 double B_d(double xi)
 {
     return (-2*a_d(xi)/(h_d*h_d) +c_d(xi));
 }
 
-/* C from the discrete from of the equation in double */
+/* C from the discrete form of the equation in double
+argument list: xi - the point where we want the value of the function */
 double C_d(double xi)
 {
     return (a_d(xi)/(h_d*h_d) +b_d(xi)/(2*h_d));
 }
 
-/* D from the discrete from of the equation in double */
+/* D from the discrete form of the equation in double
+argument list: xi - the point where we want the value of the function */
 double D_d(double xi)
 {
     return d_d(xi);
@@ -438,23 +469,18 @@ void fill_matrix_d(double *A_vec_d, double *B_vec_d, double *C_vec_d, double *D_
     int i;
 
     if (to_dirichlet) {
-        for (i = 1; i < N+1; i++) { /* going over all the points */
-            if (i != N) {   /* for dirichlet we don't need the N's index */
-                /* LHS */
-                if (i != 1) {   /* there is no A1 in dirichlet */
-                    A_vec_d[i] = A_d(x_d(i));
-                }
-                B_vec_d[i] = B_d(x_d(i));
-                if (i != N-1) {
-                    C_vec_d[i] = C_d(x_d(i));
-                }
-                /* RHS */
-                D_vec_d[1] = D_d(x_d(1)) - A_d(x_d(1)) * Y_start_d;
-                if (i > 1 && i < N-1) {
-                    D_vec_d[i] = D_d(x_d(i));
-                }
-                D_vec_d[N-1] = D_d(x_d(N-1)) - C_d(x_d(N-1)) * Y_end_d;
-            }                
+        for (i = 1; i < N; i++) { /* going over all the points for dirichlet */
+            /* LHS */
+            if (i != 1) {   /* there is no A1 in dirichlet */
+                A_vec_d[i] = A_d(x_d(i));
+            }
+            B_vec_d[i] = B_d(x_d(i));
+            if (i != N-1) { /* there is no C_N-1 in dirichlet*/
+                C_vec_d[i] = C_d(x_d(i));
+            }
+            /* RHS */
+            D_vec_d[i] = D_d(x_d(i));
+            boundary_conditions_d(A_vec_d, B_vec_d, C_vec_d, D_vec_d);
         }
     }
 
@@ -540,6 +566,42 @@ void fill_matrix_f(float *A_vec_f, float *B_vec_f, float *C_vec_f, float *D_vec_
     }
 }
 
+/* Set the boundary conditions in the vectors; double version
+argumet list: A_vec_d, B_vec_d, C_vec_d - are the diagonals of the LHS matrix.
+              D_vec_d - the RHS*/
+void boundary_conditions_d(double *A_vec_d, double *B_vec_d, double *C_vec_d, double *D_vec_d)
+{
+    if (to_dirichlet) {
+        D_vec_d[1] = D_d(x_d(1)) - A_d(x_d(1)) * Y_start_d;
+        D_vec_d[N-1] = D_d(x_d(N-1)) - C_d(x_d(N-1)) * Y_end_d;
+    }
+    if (to_neumann) {
+        A_vec_d[N] = A_d(x_d(N)) + C_d(x_d(N));
+        C_vec_d[0] = A_d(x_d(0)) + C_d(x_d(0));
+        D_vec_d[0] = D_d(x_d(0)) + 2 * h_d * A_d(x_d(0)) * Y_prim_start_d;
+        D_vec_d[N] = D_d(x_d(N)) - 2 * h_d * C_d(x_d(N)) * Y_prim_end_d;
+    }
+    (void)B_vec_d;
+}
+
+/* Set the boundary conditions in the vectors; float version
+argumet list: A_vec_d, B_vec_d, C_vec_d - are the diagonals of the LHS matrix.
+              D_vec_d - the RHS*/
+void boundary_conditions_f(float *A_vec_f, float *B_vec_f, float *C_vec_f, float *D_vec_f)
+{
+    if (to_dirichlet) {
+        D_vec_f[1] = D_f(x_f(1)) - A_f(x_f(1)) * Y_start_f;
+        D_vec_f[N-1] = D_f(x_f(N-1)) - C_f(x_f(N-1)) * Y_end_f;
+    }
+    if (to_neumann) {
+        A_vec_f[N] = A_f(x_f(N)) + C_f(x_f(N));
+        C_vec_f[0] = A_f(x_f(0)) + C_f(x_f(0));
+        D_vec_f[0] = D_f(x_f(0)) + 2 * h_f * A_f(x_f(0)) * Y_prim_start_f;
+        D_vec_f[N] = D_f(x_f(N)) - 2 * h_f * C_f(x_f(N)) * Y_prim_end_f;
+    }
+    (void)B_vec_f;
+}
+
 /* a, b, c, are the vectors of the diagonal and the two
 off-diagonals. The vector d is the RHS vector, the vector
 u is the solution vector, "is" is the starting point, and
@@ -549,25 +611,11 @@ int tridiag_f(float *a, float *b, float *c, float *d, float *u, int is, int ie)
     int i;
     float beta;
 
-    /*test*/
-    dprintF(b[ie]);
-    dprintF(c[ie-1]);
-    dprintF(b[ie] - c[ie - 1] * (-1.999900));
-    /*test*/
     for (i = is + 1; i <= ie; i++)
     {
         if (b[i - 1] == 0.)
             return (1);
         beta = a[i] / b[i - 1];
-        /*test*/
-        if (i == ie) {
-            dprintF(b[i]);
-            dprintF(c[i-1]);
-            dprintF(beta);
-            dprintF(b[i] - c[i - 1] * beta);
-            dprintF(d[i]);
-        }
-        /*test*/
         b[i] = b[i] - c[i - 1] * beta;
         d[i] = d[i] - d[i - 1] * beta;
         

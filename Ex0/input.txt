@@ -1,9 +1,9 @@
 interval:
 0 1
 double?
-yes
+no
 N:
-100
+1000
 dirichlet?
 yes
 0.0 1.0
