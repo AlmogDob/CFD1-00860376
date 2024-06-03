@@ -3,7 +3,7 @@ interval:
 double?
 yes
 N:
-1000
+5
 dirichlet?
 no
 0.0 1.0
