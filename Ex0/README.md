@@ -13,6 +13,8 @@ yes
 neumann?
 no
 1.0 -1.0
+output_check_solution?
+yes
 ```
 # Program call 
 ./main 'input directory' 'output directory'
