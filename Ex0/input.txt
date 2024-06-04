@@ -1,7 +1,7 @@
 interval:
 0 1
 double?
-no
+yes
 N:
 100
 dirichlet?
