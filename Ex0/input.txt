@@ -1,12 +1,14 @@
 interval:
 0 1
 double?
-yes
-N:
-5
-dirichlet?
 no
+N:
+100
+dirichlet?
+yes
 0.0 1.0
 neumann?
-yes
+no
 1.0 -1.0
+output_check_solution?
+yes

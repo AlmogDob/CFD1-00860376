@@ -12,6 +12,8 @@ yes
 neumann?
 no
 1.0 -1.0
+output_check_solution?
+yes
 ```
 Program call: ./main 'input directory' 'output directory' */
 
@@ -65,8 +67,11 @@ void boundary_conditions_f(float *A_vec_f, float *B_vec_f, float *C_vec_f, float
 int tridiag_f(float *a, float *b, float *c, float *d, float *u, int is, int ie);
 int tridiag_d(double *a, double *b, double *c, double *d, double *u, int is, int ie);
 
+void check_solution_d(double *check_diff_d, double *A_vec_d, double *B_vec_d, double *C_vec_d, double *D_vec_d, double *u_vec_d);
+void check_solution_f(float *check_diff_f, float *A_vec_f, float *B_vec_f, float *C_vec_f, float *D_vec_f, float *u_vec_f);
+
 int start = 0, end = 0, to_double = 1, N = -1,  /* interval: [start, end] */
-to_dirichlet = 0, to_neumann = 0;   /* 'flags' for the typ of boundary conditions */
+to_dirichlet = 0, to_neumann = 0, to_check = 0;   /* 'flags' for the typ of boundary conditions and checking the solution */
 float h_f = 0.0f, Y_start_f = 0.0f, Y_end_f = 0.0f, /* Y_start = Y0; Y_end = YN */
 Y_prim_start_f = 0.0f, Y_prim_end_f = 0.0f;
 double h_d = 0.0, Y_start_d = 0.0, Y_end_d = 0.0,
@@ -106,6 +111,7 @@ int main(int argc, char const *argv[])
     // dprintD(h_d);
     // dprintINT(to_dirichlet);
     // dprintINT(to_neumann);
+    // dprintINT(to_check);
     // dprintD(Y_start_d);
     // dprintD(Y_end_d);
     // dprintD(Y_prim_start_d);
@@ -133,6 +139,10 @@ int main(int argc, char const *argv[])
     for (i = 0; i < N+1; i++) {
         u_vec_d[i] = 0;
     }
+    double *check_diff_d = (double *)malloc(sizeof(double) * (N + 1));
+    for (i = 0; i < N+1; i++) {
+        check_diff_d[i] = 0;
+    }
     float *A_vec_f = (float *)malloc(sizeof(float) * (N + 1));
     for (i = 0; i < N+1; i++) {
         A_vec_f[i] = 0;
@@ -153,6 +163,10 @@ int main(int argc, char const *argv[])
     for (i = 0; i < N+1; i++) {
         u_vec_f[i] = 0;
     }
+    float *check_diff_f = (float *)malloc(sizeof(float) * (N + 1));
+    for (i = 0; i < N+1; i++) {
+        check_diff_f[i] = 0;
+    }
 
     /*------------------------------------------------------------*/
 
@@ -164,7 +178,9 @@ int main(int argc, char const *argv[])
             success = tridiag_d(A_vec_d, B_vec_d, C_vec_d, D_vec_d, u_vec_d, 0, N);
         }
         if (success == 0) {
-            output_solution_d(output_dir, u_vec_d);
+            if (!to_check) {     /* if we are not chekc the solution */
+                output_solution_d(output_dir, u_vec_d);
+            }
         } else {
             fprintf(stderr, "Error: something went wrong in the solver\n");
             return 1;
@@ -177,13 +193,27 @@ int main(int argc, char const *argv[])
             success = tridiag_f(A_vec_f, B_vec_f, C_vec_f, D_vec_f, u_vec_f, 0, N);
         }
         if (success == 0) {
-            output_solution_f(output_dir, u_vec_f);
+            if (!to_check) {     /* if we are not chekc the solution */
+                output_solution_f(output_dir, u_vec_f);
+            }
         } else {
             fprintf(stderr, "Error: something went wrong in the solver\n");
             return 1;
         }
-
     }
+
+    if (to_double) {
+        check_solution_d(check_diff_d, A_vec_d, B_vec_d, C_vec_d, D_vec_d, u_vec_d);
+        if (to_check) {
+            output_solution_d(output_dir, check_diff_d);
+        }
+    } else {
+        check_solution_f(check_diff_f, A_vec_f, B_vec_f, C_vec_f, D_vec_f, u_vec_f);
+        if (to_check) {
+            output_solution_f(output_dir, check_diff_f);
+        }
+    }
+    
 
     return 0;
 }
@@ -246,6 +276,15 @@ void read_input(char *dir)
                 Y_prim_end_d = (double)temp1;
             } else {
                 fscanf(fp, "%e %e", &Y_prim_start_f, &Y_prim_end_f);
+            }
+        }
+        if (!strcmp(current_word, "output_check_solution?")) {
+            fscanf(fp, "%s", current_word);
+            if (!strcmp(current_word, "yes")) {
+                to_check = 1;
+            }
+            if (!strcmp(current_word, "no")) {
+                to_check = 0;
             }
         }
     }
@@ -562,8 +601,8 @@ void boundary_conditions_d(double *A_vec_d, double *B_vec_d, double *C_vec_d, do
 }
 
 /* Set the boundary conditions in the vectors; float version
-argument list: A_vec_d, B_vec_d, C_vec_d - are the diagonals of the LHS matrix.
-               D_vec_d - the RHS */
+argument list: A_vec_f, B_vec_f, C_vec_f - are the diagonals of the LHS matrix.
+               D_vec_f - the RHS */
 void boundary_conditions_f(float *A_vec_f, float *B_vec_f, float *C_vec_f, float *D_vec_f)
 {
     if (to_dirichlet) {
@@ -630,4 +669,60 @@ int tridiag_d(double *a, double *b, double *c, double *d, double *u, int is, int
         u[i] = (d[i] - c[i] * u[i + 1]) / b[i];
     }
     return (0);
+}
+
+/* Calcultas Ax-B and puts the answer in check_diff; double version
+argument list: A_vec_d, B_vec_d, C_vec_d - LHS.
+D_vec_d - RHS.
+u_vec_d - the solution vector.
+check_diff_d - the vector of the differences. */
+void check_solution_d(double *check_diff_d, double *A_vec_d,
+                      double *B_vec_d, double *C_vec_d,
+                      double *D_vec_d, double *u_vec_d)
+{
+    int i;
+
+    fill_matrix_d(A_vec_d, B_vec_d, C_vec_d,D_vec_d);
+    if (to_dirichlet) {
+        check_diff_d[1] = B_vec_d[1] * u_vec_d[1] + C_vec_d[1] * u_vec_d[2] - D_vec_d[1];
+        for (i = 2; i < N-1; i++) {
+            check_diff_d[i] = A_vec_d[i] * u_vec_d[i-1] + B_vec_d[i] * u_vec_d[i] + C_vec_d[i] * u_vec_d[i+1] - D_vec_d[i];
+        }
+        check_diff_d[N-1] = A_vec_d[N-1] * u_vec_d[N-2] + B_vec_d[N-1] * u_vec_d[N-1] - D_vec_d[N-1];
+    }
+    if (to_neumann) {
+        check_diff_d[0] = B_vec_d[0] * u_vec_d[0] + (A_vec_d[0] + C_vec_d[0]) * u_vec_d[1] - D_vec_d[0];
+        for (i = 1; i < N; i++) {
+            check_diff_d[i] = A_vec_d[i] * u_vec_d[i-1] + B_vec_d[i] * u_vec_d[i] + C_vec_d[i] * u_vec_d[i+1] - D_vec_d[i];
+        }
+        check_diff_d[N] = (A_vec_d[N] + C_vec_d[N]) * u_vec_d[N-1] + B_vec_d[N] * u_vec_d[N] - D_vec_d[N];
+    }
+}
+
+/* Calcultas Ax-B and puts the answer in check_diff; float version
+argument list: A_vec_f, B_vec_f, C_vec_f - LHS.
+D_vec_f - RHS.
+u_vec_f - the solution vector.
+check_diff_f - the vector of the differences. */
+void check_solution_f(float *check_diff_f, float *A_vec_f,
+                      float *B_vec_f, float *C_vec_f,
+                      float *D_vec_f, float *u_vec_f)
+{
+    int i;
+
+    fill_matrix_f(A_vec_f, B_vec_f, C_vec_f,D_vec_f);
+    if (to_dirichlet) {
+        check_diff_f[1] = B_vec_f[1] * u_vec_f[1] + C_vec_f[1] * u_vec_f[2] - D_vec_f[1];
+        for (i = 2; i < N-1; i++) {
+            check_diff_f[i] = A_vec_f[i] * u_vec_f[i-1] + B_vec_f[i] * u_vec_f[i] + C_vec_f[i] * u_vec_f[i+1] - D_vec_f[i];
+        }
+        check_diff_f[N-1] = A_vec_f[N-1] * u_vec_f[N-2] + B_vec_f[N-1] * u_vec_f[N-1] - D_vec_f[N-1];
+    }
+    if (to_neumann) {
+        check_diff_f[0] = B_vec_f[0] * u_vec_f[0] + (A_vec_f[0] + C_vec_f[0]) * u_vec_f[1] - D_vec_f[0];
+        for (i = 1; i < N; i++) {
+            check_diff_f[i] = A_vec_f[i] * u_vec_f[i-1] + B_vec_f[i] * u_vec_f[i] + C_vec_f[i] * u_vec_f[i+1] - D_vec_f[i];
+        }
+        check_diff_f[N] = (A_vec_f[N] + C_vec_f[N]) * u_vec_f[N-1] + B_vec_f[N] * u_vec_f[N] - D_vec_f[N];
+    }
 }
