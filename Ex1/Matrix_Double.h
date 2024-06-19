@@ -25,17 +25,17 @@ typedef struct {
     size_t rows;
     size_t cols;
     size_t stride;
-    float *elements;
+    double *elements;
     
 } Mat;
 
 #define MAT_AT(m, i, j) (m).elements[(i)*(m).cols + (j)]
 #define MAT_PRINT(m) mat_print(m, #m, 0)
 
-float rand_float(void);
+double rand_double(void);
 Mat mat_alloc(size_t rows, size_t cols);
-void mat_fill(Mat m, float x);
-void mat_rand(Mat m, float low, float high);
+void mat_fill(Mat m, double x);
+void mat_rand(Mat m, double low, double high);
 void mat_dot(Mat dst, Mat a, Mat b);
 void mat_sum(Mat dst, Mat a);
 void mat_mult(Mat m, size_t factor);
@@ -46,9 +46,9 @@ void mat_identity_mat(Mat m);
 
 #ifdef MATRIX_IMPLEMENTATION
 
-float rand_float(void)
+double rand_double(void)
 {
-    return (float) rand() / (float) RAND_MAX;
+    return (double) rand() / (double) RAND_MAX;
 }
 
 Mat mat_alloc(size_t rows, size_t cols)
@@ -57,12 +57,12 @@ Mat mat_alloc(size_t rows, size_t cols)
     m.rows = rows;
     m.cols = cols;
     m.stride = cols;
-    m.elements = (float*)MATRIX_MALLOC(sizeof(*m.elements)*rows*cols);
+    m.elements = (double*)MATRIX_MALLOC(sizeof(*m.elements)*rows*cols);
     MATRIX_ASSERT(m.elements != NULL);
     return m;    
 }
 
-void mat_fill(Mat m, float x)
+void mat_fill(Mat m, double x)
 {
     for (size_t i = 0; i < m.rows; ++i) {
         for (size_t j = 0; j < m.cols; ++j) {
@@ -71,11 +71,11 @@ void mat_fill(Mat m, float x)
     }
 }
 
-void mat_rand(Mat m, float low, float high)
+void mat_rand(Mat m, double low, double high)
 {
     for (size_t i = 0; i < m.rows; ++i) {
         for (size_t j = 0; j < m.cols; ++j) {
-            MAT_AT(m, i, j) = rand_float()*(high - low) + low;
+            MAT_AT(m, i, j) = rand_double()*(high - low) + low;
         }
     }
 }
@@ -123,7 +123,7 @@ void mat_print(Mat m, const char *name, size_t padding)
     for (size_t i = 0; i < m.rows; ++i) {
         printf("%*s    ", (int) padding, "");
         for (size_t j = 0; j < m.cols; ++j) {
-            printf("%f ", MAT_AT(m, i, j));
+            printf("%g ", MAT_AT(m, m.rows - 1 - i, j));
         }
         printf("\n");
     }
@@ -145,4 +145,4 @@ void mat_identity_mat(Mat m)
     }
 }
 
-#endif // MATRIX_IMPLEMENTdddddddddddddddouble
+#endif // MATRIX_IMPLEMENTATION
