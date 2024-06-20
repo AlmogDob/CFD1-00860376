@@ -94,8 +94,14 @@ int main(int argc, char const *argv[])
     
     initialize(x_vals_mat, y_vals_mat);
     /*------------------------------------------------------------*/
-    MAT_PRINT(xmat);
-    MAT_PRINT(ymat);
+
+    FILE *fp = fopen("x_mat_output.txt", "wt");
+    mat_print_to_file(fp, xmat, "", 0);
+    fclose(fp);
+
+    fp = fopen("y_mat_output.txt", "wt");
+    mat_print_to_file(fp, ymat, "", 0);
+    fclose(fp);
 
     return 0;
 }
@@ -173,7 +179,10 @@ void initialize(double *x_vals_mat, double *y_vals_mat)
 void set_grid_boundaries(double *x_vals_mat, double *y_vals_mat)
 {
     int i_index, i_min = 0, j_index, j_min = 0;
-    double x, x_i_minos_2, x_i_minos_1, y_j_minos_2, y_j_minos_1;
+    double x, x_i_minos_2, x_i_minos_1, y_j_minos_2, y_j_minos_1, y_imax_jmax, x_imax_jmax,
+    delta_theta, R, theta = 0, y_i_minos_1, x_i_plus_1;
+    int A, B, num_points_befor_circle, num_points_after_circle, num_points_on_circle;
+    double A_temp, B_temp;
 
     /* setting the boundary according to the exercie */
     /* Eq 6 */
@@ -207,6 +216,40 @@ void set_grid_boundaries(double *x_vals_mat, double *y_vals_mat)
         y_vals_mat[offset2d(i_min, j_index, i_max+1)] = -y_vals_mat[offset2d(i_max, j_index, i_max+1)];
         x_vals_mat[offset2d(i_min, j_index, i_max+1)] = x_vals_mat[offset2d(i_min, j_min, i_max+1)];
     }
+    /* Outer boundary */
+    y_imax_jmax = y_vals_mat[offset2d(i_max, j_max, i_max+1)];
+    x_imax_jmax = x_vals_mat[offset2d(i_max, j_max, i_max+1)];
+    A_temp = PI * y_imax_jmax * (i_max - 1.0) / (2*x_imax_jmax + PI * y_imax_jmax);
+    B_temp = 0.5 * (i_max - 1 - A_temp);
+    delta_theta = 2 * x_imax_jmax / y_imax_jmax / (i_max - 1) + PI / (i_max - 1);
+    R = y_imax_jmax;
+    dprintD(delta_theta);
+    A = (int)A_temp;
+    B = (int)B_temp;
+    
+    num_points_on_circle = A;
+    num_points_befor_circle = B + 1;
+    num_points_after_circle = B + 1;
+
+    for (i_index = i_min + 1, j_index = j_max; i_index < num_points_befor_circle + 1; i_index++) {
+        x_i_minos_1 = x_vals_mat[offset2d(i_index-1, j_index, i_max+1)];
+        x_vals_mat[offset2d(i_index, j_index, i_max+1)] = x_i_minos_1 - x_imax_jmax/num_points_befor_circle;
+        y_vals_mat[offset2d(i_index, j_index, i_max+1)] = y_vals_mat[offset2d(i_min, j_max, i_max+1)];
+    }
+    for (i_index = num_points_befor_circle + 1, j_index = j_max; i_index < num_points_befor_circle + num_points_on_circle; i_index++) { 
+        theta += delta_theta;
+        x_i_minos_1 = x_vals_mat[offset2d(i_index-1, j_index, i_max+1)];
+        x_vals_mat[offset2d(i_index, j_index, i_max+1)] = x_i_minos_1 - R * delta_theta * cos(theta);
+        y_i_minos_1 = y_vals_mat[offset2d(i_index-1, j_index, i_max+1)];
+        y_vals_mat[offset2d(i_index, j_index, i_max+1)] = y_i_minos_1 + R * delta_theta * sin(theta);
+    }
+    for (i_index = i_max-1, j_index = j_max; i_index > i_max - num_points_after_circle-1; i_index--) {
+        x_i_plus_1 = x_vals_mat[offset2d(i_index+1, j_index, i_max+1)];
+        x_vals_mat[offset2d(i_index, j_index, i_max+1)] = x_i_plus_1 - x_imax_jmax/num_points_after_circle;
+        y_vals_mat[offset2d(i_index, j_index, i_max+1)] = y_vals_mat[offset2d(i_max, j_max, i_max+1)];
+    }
+
+    
 }
 
 double airfoil(double x, char side)
