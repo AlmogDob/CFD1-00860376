@@ -124,7 +124,7 @@ void mat_print(Mat m, const char *name, size_t padding)
     for (size_t i = 0; i < m.rows; ++i) {
         printf("%*s    ", (int) padding, "");
         for (size_t j = 0; j < m.cols; ++j) {
-            printf("%g ", MAT_AT(m, i, j));
+            printf("%g ", MAT_AT(m, m.rows -1 -i, j));
         }
         printf("\n");
     }

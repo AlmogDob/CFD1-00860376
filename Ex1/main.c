@@ -93,7 +93,13 @@ int main(int argc, char const *argv[])
     /*------------------------------------------------------------*/
     
     initialize(x_vals_mat, y_vals_mat);
+
     /*------------------------------------------------------------*/
+
+    // for (i_index = 0; i_index < i_max+1; i_index++) {
+    //     // x_vals_mat[offset2d(i_index, j_max, i_max+1)] = 3;
+    // }
+    // MAT_PRINT(xmat);
 
     FILE *fp = fopen("x_mat_output.txt", "wt");
     mat_print_to_file(fp, xmat, "", 0);
@@ -219,9 +225,9 @@ void set_grid_boundaries(double *x_vals_mat, double *y_vals_mat)
     /* Outer boundary */
     y_imax_jmax = y_vals_mat[offset2d(i_max, j_max, i_max+1)];
     x_imax_jmax = x_vals_mat[offset2d(i_max, j_max, i_max+1)];
-    A_temp = PI * y_imax_jmax * (i_max - 1.0) / (2*x_imax_jmax + PI * y_imax_jmax);
-    B_temp = 0.5 * (i_max - 1 - A_temp);
-    delta_theta = 2 * x_imax_jmax / y_imax_jmax / (i_max - 1) + PI / (i_max - 1);
+    A_temp = PI * y_imax_jmax * (i_max) / (2*x_imax_jmax + PI * y_imax_jmax);
+    B_temp = 0.5 * (i_max - A_temp);
+    delta_theta = 2 * x_imax_jmax / y_imax_jmax / (i_max) + PI / (i_max);
     R = y_imax_jmax;
     dprintD(delta_theta);
     A = (int)A_temp;
