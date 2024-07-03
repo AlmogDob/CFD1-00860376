@@ -40,7 +40,7 @@ void mat_dot(Mat dst, Mat a, Mat b);
 void mat_sum(Mat dst, Mat a);
 void mat_mult(Mat m, size_t factor);
 void mat_print(Mat m, const char *name, size_t padding);
-void mat_print_to_file(FILE *fp, Mat m, const char *name, size_t padding);
+void mat_print_to_file(FILE *fp, Mat m, const char *name);
 void mat_identity_mat(Mat m);
 
 #endif // MATRIX_H_
@@ -131,7 +131,7 @@ void mat_print(Mat m, const char *name, size_t padding)
     printf("%*s]\n", (int) padding, "");
 }
 
-void mat_print_to_file(FILE *fp, Mat m, const char *name, size_t padding)
+void mat_print_to_file(FILE *fp, Mat m, const char *name)
 {
     for (size_t i = 0; i < m.rows; ++i) {
         for (size_t j = 0; j < m.cols; ++j) {
@@ -139,6 +139,7 @@ void mat_print_to_file(FILE *fp, Mat m, const char *name, size_t padding)
         }
         fprintf(fp, "\n");
     }
+    name = (void *)name;
 }
 
 void mat_identity_mat(Mat m)
