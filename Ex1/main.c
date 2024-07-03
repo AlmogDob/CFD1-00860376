@@ -23,7 +23,7 @@ double airfoil(double x, char side);
 void interpulat_mat(double *x_vals_mat, char diraction);
 double first_deriv(double *mat, char diraction, int i, int j);
 double second_deriv(double *mat, char diraction, int i, int j);
-void alpha_beta_gama(double *alpha_val_mat, double *beta_val_mat, double *gama_val_mat, double *x_val_mat, double *y_val_mat);
+void alpha_beta_gama(double *alpha_vals_mat, double *beta_vals_mat, double *gama_vals_mat, double *x_vals_mat, double *y_vals_mat);
 
 /* Input variables */
 double t, delta_x, delta_y, XSF, YSF, x_int = 1;
@@ -83,18 +83,28 @@ int main(int argc, char const *argv[])
             x_vals_mat[offset2d(i_index, j_index, i_max+1)] = 0;
         }
     }
-
     double *y_vals_mat = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
     for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the matrix with zeros */
         for (j_index = 0; j_index < j_max+1; j_index++) {
             x_vals_mat[offset2d(i_index, j_index, i_max+1)] = 0;
         }
     }
-
     double *alpha_vals_mat = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
     for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the matrix with zeros */
         for (j_index = 0; j_index < j_max+1; j_index++) {
             alpha_vals_mat[offset2d(i_index, j_index, i_max+1)] = 0;
+        }
+    }
+    double *beta_vals_mat = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
+    for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the matrix with zeros */
+        for (j_index = 0; j_index < j_max+1; j_index++) {
+            beta_vals_mat[offset2d(i_index, j_index, i_max+1)] = 0;
+        }
+    }
+    double *gama_vals_mat = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
+    for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the matrix with zeros */
+        for (j_index = 0; j_index < j_max+1; j_index++) {
+            gama_vals_mat[offset2d(i_index, j_index, i_max+1)] = 0;
         }
     }
 
@@ -102,8 +112,7 @@ int main(int argc, char const *argv[])
     
     initialize(x_vals_mat, y_vals_mat);
 
-    double ans = second_deriv(x_vals_mat, 'i', 1, 0);
-    dprintD(ans);
+    alpha_beta_gama(alpha_vals_mat, beta_vals_mat, gama_vals_mat, x_vals_mat, y_vals_mat);
 
     /*------------------------------------------------------------*/
 
@@ -114,15 +123,15 @@ int main(int argc, char const *argv[])
     // for (i_index = 0; i_index < i_max+1; i_index++) {
     //     alpha_vals_mat[offset2d(i_index, j_max, i_max+1)] = 3;
     // }
-    // MAT_PRINT(xmat);
+    MAT_PRINT(alphaMat);
 
-    FILE *fp = fopen("x_mat_output.txt", "wt");
-    mat_print_to_file(fp, xmat, "");
-    fclose(fp);
+    // FILE *fp = fopen("x_mat_output.txt", "wt");
+    // mat_print_to_file(fp, xmat, "");
+    // fclose(fp);
 
-    fp = fopen("y_mat_output.txt", "wt");
-    mat_print_to_file(fp, ymat, "");
-    fclose(fp);
+    // fp = fopen("y_mat_output.txt", "wt");
+    // mat_print_to_file(fp, ymat, "");
+    // fclose(fp);
 
     return 0;
 }
@@ -196,9 +205,9 @@ int offset2d(int i, int j, int ni)
     return j * ni + i;
 }
 
-/* set inital valuse of the mash points 
-argument list: x_vals_mat - 1D array of the x valuse 
-y_vals_mat - 1D array of the y valuse */
+/* set inital valsuse of the mash points 
+argument list: x_vals_mat - 1D array of the x valsuse 
+y_vals_mat - 1D array of the y valsuse */
 void initialize(double *x_vals_mat, double *y_vals_mat)
 {
     set_grid_boundaries(x_vals_mat, y_vals_mat);
@@ -207,15 +216,15 @@ void initialize(double *x_vals_mat, double *y_vals_mat)
 }
 
 /* set the mash boundaries coorditates 
-argument list: x_vals_mat - 1D array of the x valuse 
-y_vals_mat - 1D array of the y valuse */
+argument list: x_vals_mat - 1D array of the x valsuse 
+y_vals_mat - 1D array of the y valsuse */
 void set_grid_boundaries(double *x_vals_mat, double *y_vals_mat)
 {
     int i_index, i_min = 0, j_index, j_min = 0, index = 0, num_points_befor_circle,
     num_of_outer_segments, num_of_top_outer_segments;
 
     double x, x_i_minos_2, x_i_minos_1, y_j_minos_2, y_j_minos_1, y_imax_jmax, x_imax_jmax,
-    delta_theta, R, theta = 0, length_top_outer, segment_length, current_x_val = 0;
+    delta_theta, R, theta = 0, length_top_outer, segment_length, current_x_vals = 0;
 
     /* setting the boundary according to the exercie */
     /* Eq 6 */
@@ -263,11 +272,11 @@ void set_grid_boundaries(double *x_vals_mat, double *y_vals_mat)
     for (num_points_befor_circle = 0;
          num_points_befor_circle < num_of_top_outer_segments + 1;
          num_points_befor_circle++) {
-            current_x_val = x_imax_jmax - num_points_befor_circle*segment_length; 
-            if (current_x_val < 0) {
+            current_x_vals = x_imax_jmax - num_points_befor_circle*segment_length; 
+            if (current_x_vals < 0) {
                 break;
             }
-            x_vals_mat[offset2d(i_max-num_points_befor_circle, j_max, i_max+1)] = current_x_val;
+            x_vals_mat[offset2d(i_max-num_points_befor_circle, j_max, i_max+1)] = current_x_vals;
             y_vals_mat[offset2d(i_max-num_points_befor_circle, j_max, i_max+1)] = y_imax_jmax;
     }
 
@@ -306,7 +315,7 @@ double airfoil(double x, char side)
 }
 
 /* fill the matrix in a way of interpulation the boundarys
-argument list: mat - 1D array of valuse
+argument list: mat - 1D array of valsuse
 diraction - i direction or j direction */
 void interpulat_mat(double *mat, char diraction)
 {
@@ -338,11 +347,15 @@ void interpulat_mat(double *mat, char diraction)
 double first_deriv(double *mat, char diraction, int i, int j)
 {
     if (diraction == 'j') {
-        assert(j != j_min && j != j_max);
+        if (j == j_min || j == j_max) {
+            return 0;
+        }
         return (mat[offset2d(i, j+1, i_max+1)] - mat[offset2d(i, j-1, i_max+1)]) / (2); /* second order first derivitive */
     }
     if (diraction == 'i') {
-        assert(i != i_min && i != i_max);
+        if (i == i_min || i == i_max) {
+            return 0;
+        }
         return (mat[offset2d(i+1, j, i_max+1)] - mat[offset2d(i-1, j, i_max+1)]) / (2); /* second order first derivitive */
     }
 }
@@ -350,12 +363,35 @@ double first_deriv(double *mat, char diraction, int i, int j)
 double second_deriv(double *mat, char diraction, int i, int j)
 {
     if (diraction == 'j') {
-        assert(j != j_min && j != j_max);
+        if (j == j_min || j == j_max) {
+            return 0;
+        }
         return (mat[offset2d(i, j+1, i_max+1)] -2*mat[offset2d(i, j, i_max)] + mat[offset2d(i, j-1, i_max+1)]) / (1); /* second order second derivitive */
     }
     if (diraction == 'i') {
-        assert(i != i_min && i != i_max);
+        if (i == i_min || i == i_max) {
+            return 0;
+        }
         return (mat[offset2d(i+1, j, i_max+1)] -2*mat[offset2d(i, j, i_max)] + mat[offset2d(i-1, j, i_max+1)]) / (1); /* second order second derivitive */
     }
 }
 
+
+void alpha_beta_gama(double *alpha_vals_mat, double *beta_vals_mat, double *gama_vals_mat, double *x_vals_mat, double *y_vals_mat)
+{
+    /* according to equation 3 */
+    int i, j;
+    double Dx_Deta, Dy_Deta, Dx_Dxai, Dy_Dxai;
+
+    for (i = 0; i < i_max + 1; i++) {
+        for (j = 0; j < j_max + 1; j++) {
+            Dx_Deta = first_deriv(x_vals_mat, 'j', i, j);
+            Dy_Deta = first_deriv(y_vals_mat, 'j', i, j);
+            Dx_Dxai = first_deriv(x_vals_mat, 'i', i, j);
+            Dy_Dxai = first_deriv(y_vals_mat, 'i', i, j);
+            alpha_vals_mat[offset2d(i, j, i_max+1)] = Dx_Deta*Dx_Deta + Dy_Deta*Dy_Deta;
+            beta_vals_mat[offset2d(i, j, i_max+1)] = Dx_Dxai*Dx_Deta + Dy_Dxai*Dy_Deta;
+            gama_vals_mat[offset2d(i, j, i_max+1)] = Dx_Dxai*Dx_Dxai + Dy_Dxai*Dy_Dxai;
+        }
+    }
+}
