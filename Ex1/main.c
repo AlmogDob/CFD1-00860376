@@ -30,6 +30,7 @@ void alpha_beta_gama(double *alpha_vals_mat, double *beta_vals_mat,
 void psi_phi(double *psi_vals_mat, double *phi_vals_mat,
              double *x_vals_mat, double *y_vals_mat);
 void copy_mat(double *dst, double *src);
+void copy_row_to_mat(double *dst, double *src, int row_num);
 double L_x(double *x_vals_mat, double *alpha_vals_mat,
            double *phi_vals_mat, double *beta_vals_mat,
            double *gama_vals_mat, double *psi_vals_mat, int i, int j);
@@ -39,11 +40,14 @@ double L_y(double *y_vals_mat, double *alpha_vals_mat,
 int sweep1(double *fx_vals_mat, double *fy_vals_mat, double *x_vals_mat,
            double *alpha_vals_mat, double *phi_vals_mat,
            double *beta_vals_mat, double *gama_vals_mat,
-           double *psi_vals_mat, int j);
+           double *psi_vals_mat);
 void LHS_sweep1(double *A, double *B, double *C, double *alpha_vals_mat, int j);
 void RHS_sweep1_x(double *D, double *x_vals_mat, double *alpha_vals_mat,
                 double *phi_vals_mat, double *beta_vals_mat,
                 double *gama_vals_mat, double *psi_vals_mat, int j);
+void BC_sweep(double *A, double *B, double *C, double *D);
+int tridiag(double *a, double *b, double *c, double *d,
+              double *u, int is, int ie);
 
 /* Input variables */
 double t, delta_x, delta_y, XSF, YSF, x_int = 1, r, omega;
@@ -166,28 +170,16 @@ int main(int argc, char const *argv[])
             phi_vals_mat[offset2d(i_index, j_index, i_max+1)] = 0;
         }
     }
-    double *fx_current_vals_mat = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
+    double *fx_vals_mat = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
     for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the matrix with zeros */
         for (j_index = 0; j_index < j_max+1; j_index++) {
-            fx_current_vals_mat[offset2d(i_index, j_index, i_max+1)] = 0;
+            fx_vals_mat[offset2d(i_index, j_index, i_max+1)] = 0;
         }
     }
-    double *fy_current_vals_mat = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
+    double *fy_vals_mat = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
     for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the matrix with zeros */
         for (j_index = 0; j_index < j_max+1; j_index++) {
-            fy_current_vals_mat[offset2d(i_index, j_index, i_max+1)] = 0;
-        }
-    }
-    double *fx_next_vals_mat = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
-    for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the matrix with zeros */
-        for (j_index = 0; j_index < j_max+1; j_index++) {
-            fx_next_vals_mat[offset2d(i_index, j_index, i_max+1)] = 0;
-        }
-    }
-    double *fy_next_vals_mat = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
-    for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the matrix with zeros */
-        for (j_index = 0; j_index < j_max+1; j_index++) {
-            fy_next_vals_mat[offset2d(i_index, j_index, i_max+1)] = 0;
+            fy_vals_mat[offset2d(i_index, j_index, i_max+1)] = 0;
         }
     }
 
@@ -201,12 +193,16 @@ int main(int argc, char const *argv[])
     copy_mat(y_vals_mat_current, y_vals_mat_init);
     copy_mat(y_vals_mat_next, y_vals_mat_init);
 
+    sweep1(fx_vals_mat, fy_vals_mat, x_vals_mat_current, alpha_vals_mat,
+           phi_vals_mat, beta_vals_mat, gama_vals_mat, psi_vals_mat);
+
     /*------------------------------------------------------------*/
 
     Mat xmat = {.cols = i_max+1, .rows = j_max+1, .stride = i_max+1, .elements = x_vals_mat_init}; /* for debuging */
     Mat ymat = {.cols = i_max+1, .rows = j_max+1, .stride = i_max+1, .elements = y_vals_mat_init}; 
     Mat xCurrentMat = {.cols = i_max+1, .rows = j_max+1, .stride = i_max+1, .elements = x_vals_mat_current}; 
     Mat yCurrentMat = {.cols = i_max+1, .rows = j_max+1, .stride = i_max+1, .elements = y_vals_mat_current}; 
+    Mat fxMat = {.cols = i_max+1, .rows = j_max+1, .stride = i_max+1, .elements = fx_vals_mat}; 
 
     // for (i_index = 0; i_index < i_max+1; i_index++) {
     //     alpha_vals_mat[offset2d(i_index, j_max, i_max+1)] = 3;
@@ -214,7 +210,7 @@ int main(int argc, char const *argv[])
 
     // MAT_PRINT(xmat);
     // MAT_PRINT(ymat);
-    // MAT_PRINT(yCurrentMat);
+    MAT_PRINT(fxMat);
 
     // FILE *fp = fopen("x_mat_output.txt", "wt");
     // mat_print_to_file(fp, xmat, "");
@@ -610,6 +606,16 @@ void copy_mat(double *dst, double *src)
     }
 }
 
+/* copys the row 'src' into the j row in the destination matrix */
+void copy_row_to_mat(double *dst, double *src, int row_num)
+{
+    int i;
+    
+    for (i = 0; i < i_max+1; i++) {
+        dst[offset2d(i, row_num, i_max+1)] = src[i];
+    }
+}
+
 /* returns the valus of L_x according to equation 10
 argumetn list:
 x_vals_mat - 1D array of the x valus
@@ -704,7 +710,8 @@ double L_y(double *y_vals_mat, double *alpha_vals_mat,
     return first_element - second_element + third_element;
 }
 
-/* doing the first sweep according to equation 12
+/* doing the first sweep according to equation 12;
+returns 0 on success
 argument list:
 fx_vals_mat - 1D array for the fx valus 
 fy_vals_mat - 1D array for the fy valus
@@ -712,40 +719,48 @@ alpha_vals_mat - 1D array of the alpha valus */
 int sweep1(double *fx_vals_mat, double *fy_vals_mat, double *x_vals_mat,
            double *alpha_vals_mat, double *phi_vals_mat,
            double *beta_vals_mat, double *gama_vals_mat,
-           double *psi_vals_mat, int j)
+           double *psi_vals_mat)
 {
-    int i_index, j_index;
+    int i_index, j_index, success = 0;
 
-    double *Ax = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
-    for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the matrix with zeros */
-        for (j_index = 0; j_index < j_max+1; j_index++) {
-            Ax[offset2d(i_index, j_index, i_max+1)] = 0;
-        }
+    /* memory allocating */
+    double *Ax = (double *)malloc(sizeof(double) * (i_max + 1));
+    for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the array with zeros */
+        Ax[i_index] = 0;
     }
-    double *Bx = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
-    for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the matrix with zeros */
-        for (j_index = 0; j_index < j_max+1; j_index++) {
-            Bx[offset2d(i_index, j_index, i_max+1)] = 0;
-        }
+    double *Bx = (double *)malloc(sizeof(double) * (i_max + 1));
+    for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the array with zeros */
+        Bx[i_index] = 0;
     }
-    double *Cx = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
-    for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the matrix with zeros */
-        for (j_index = 0; j_index < j_max+1; j_index++) {
-            Cx[offset2d(i_index, j_index, i_max+1)] = 0;
-        }
+    double *Cx = (double *)malloc(sizeof(double) * (i_max + 1));
+    for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the array with zeros */
+        Cx[i_index] = 0;
     }
-    double *Dx = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
-    for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the matrix with zeros */
-        for (j_index = 0; j_index < j_max+1; j_index++) {
-            Dx[offset2d(i_index, j_index, i_max+1)] = 0;
-        }
+    double *Dx = (double *)malloc(sizeof(double) * (i_max + 1));
+    for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the array with zeros */
+        Dx[i_index] = 0;
+    }
+    double *temp_row = (double *)malloc(sizeof(double) * (i_max + 1));
+    for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the array with zeros */
+        temp_row[i_index] = 0;
     }
 
+    /* solving for each j */
     for (j_index = 0; j_index < j_max+1; j_index++) {
         LHS_sweep1(Ax, Bx, Cx, alpha_vals_mat, j_index);
         RHS_sweep1_x(Dx, x_vals_mat, alpha_vals_mat, phi_vals_mat,
-                     beta_vals_mat, gama_vals_mat, psi_vals_mat, j);
+                     beta_vals_mat, gama_vals_mat, psi_vals_mat, j_index);
+        BC_sweep(Ax, Bx, Cx, Dx);
+        success = tridiag(Ax, Bx, Cx, Dx, temp_row, 0, i_max);
+        if (success == 1) {
+            break;
+        }
+        copy_row_to_mat(fx_vals_mat, temp_row, j_index);
     }
+    if (success == 1) {
+        return 1;
+    }
+    return 0;
 }
 
 void LHS_sweep1(double *A, double *B, double *C, double *alpha_vals_mat, int j)
@@ -753,9 +768,9 @@ void LHS_sweep1(double *A, double *B, double *C, double *alpha_vals_mat, int j)
     int i;
 
     for (i = 0; i < i_max+1; i++) {
-        A[offset2d(i, j, i_max+1)] = -alpha_vals_mat[offset2d(i, j, i_max+1)];
-        B[offset2d(i, j, i_max+1)] = r + 2 * alpha_vals_mat[offset2d(i, j, i_max+1)];
-        C[offset2d(i, j, i_max+1)] = -alpha_vals_mat[offset2d(i, j, i_max+1)];
+        A[i] = -alpha_vals_mat[offset2d(i, j, i_max+1)];
+        B[i] = r + 2 * alpha_vals_mat[offset2d(i, j, i_max+1)];
+        C[i] = -alpha_vals_mat[offset2d(i, j, i_max+1)];
     }
 }
 
@@ -766,9 +781,46 @@ void RHS_sweep1_x(double *D, double *x_vals_mat, double *alpha_vals_mat,
     int i;
     
     for (i = 0; i < i_max+1; i++) {
-        D[offset2d(i, j, i_max+1)] = r * omega * L_x(x_vals_mat, alpha_vals_mat, 
-                                                     phi_vals_mat, beta_vals_mat,
-                                                     gama_vals_mat, psi_vals_mat,
-                                                     i, j);
+        D[i] = r * omega * L_x(x_vals_mat, alpha_vals_mat, phi_vals_mat,
+                               beta_vals_mat, gama_vals_mat,
+                               psi_vals_mat, i, j);
     }
 }
+
+void BC_sweep(double *A, double *B, double *C, double *D)
+{
+    A[0] = 0;
+    B[0] = 1;
+    C[0] = 0;
+    D[0] = 0;
+    A[i_max] = 0;
+    B[i_max] = 1;
+    C[i_max] = 0;
+    D[i_max] = 0;
+}
+
+/* a, b, c, are the vectors of the diagonal and the two
+off-diagonals. The vector d is the RHS vector, the vector
+u is the solution vector, "is" is the starting point, and
+ie is the last point */
+int tridiag(double *a, double *b, double *c, double *d, double *u, int is, int ie)
+{
+    int i;
+    double beta;
+
+    for (i = is + 1; i <= ie; i++)
+    {
+        if (b[i - 1] == 0.)
+            return (1);
+        beta = a[i] / b[i - 1];
+        b[i] = b[i] - c[i - 1] * beta;
+        d[i] = d[i] - d[i - 1] * beta;
+    }
+
+    u[ie] = d[ie] / b[ie];
+    for (i = ie - 1; i >= is; i--)
+    {
+        u[i] = (d[i] - c[i] * u[i + 1]) / b[i];
+    }
+    return (0);
+}// 
