@@ -30,10 +30,20 @@ void alpha_beta_gama(double *alpha_vals_mat, double *beta_vals_mat,
 void psi_phi(double *psi_vals_mat, double *phi_vals_mat,
              double *x_vals_mat, double *y_vals_mat);
 void copy_mat(double *dst, double *src);
-double L_x(double *x_vals_mat, double *alpha_vals_mat, double *phi_vals_mat,
-           double *beta_vals_mat, double *gama_vals_mat, double *psi_vals_mat, int i, int j);
-double L_y(double *y_vals_mat, double *alpha_vals_mat, double *phi_vals_mat,
-           double *beta_vals_mat, double *gama_vals_mat, double *psi_vals_mat, int i, int j);
+double L_x(double *x_vals_mat, double *alpha_vals_mat,
+           double *phi_vals_mat, double *beta_vals_mat,
+           double *gama_vals_mat, double *psi_vals_mat, int i, int j);
+double L_y(double *y_vals_mat, double *alpha_vals_mat,
+           double *phi_vals_mat, double *beta_vals_mat,
+           double *gama_vals_mat, double *psi_vals_mat, int i, int j);
+int sweep1(double *fx_vals_mat, double *fy_vals_mat, double *x_vals_mat,
+           double *alpha_vals_mat, double *phi_vals_mat,
+           double *beta_vals_mat, double *gama_vals_mat,
+           double *psi_vals_mat, int j);
+void LHS_sweep1(double *A, double *B, double *C, double *alpha_vals_mat, int j);
+void RHS_sweep1_x(double *D, double *x_vals_mat, double *alpha_vals_mat,
+                double *phi_vals_mat, double *beta_vals_mat,
+                double *gama_vals_mat, double *psi_vals_mat, int j);
 
 /* Input variables */
 double t, delta_x, delta_y, XSF, YSF, x_int = 1, r, omega;
@@ -154,6 +164,30 @@ int main(int argc, char const *argv[])
     for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the matrix with zeros */
         for (j_index = 0; j_index < j_max+1; j_index++) {
             phi_vals_mat[offset2d(i_index, j_index, i_max+1)] = 0;
+        }
+    }
+    double *fx_current_vals_mat = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
+    for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the matrix with zeros */
+        for (j_index = 0; j_index < j_max+1; j_index++) {
+            fx_current_vals_mat[offset2d(i_index, j_index, i_max+1)] = 0;
+        }
+    }
+    double *fy_current_vals_mat = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
+    for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the matrix with zeros */
+        for (j_index = 0; j_index < j_max+1; j_index++) {
+            fy_current_vals_mat[offset2d(i_index, j_index, i_max+1)] = 0;
+        }
+    }
+    double *fx_next_vals_mat = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
+    for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the matrix with zeros */
+        for (j_index = 0; j_index < j_max+1; j_index++) {
+            fx_next_vals_mat[offset2d(i_index, j_index, i_max+1)] = 0;
+        }
+    }
+    double *fy_next_vals_mat = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
+    for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the matrix with zeros */
+        for (j_index = 0; j_index < j_max+1; j_index++) {
+            fy_next_vals_mat[offset2d(i_index, j_index, i_max+1)] = 0;
         }
     }
 
@@ -586,8 +620,9 @@ gama_vals_mat - 1D array of the gama valus
 phi_vals_mat - 1D array of the phi valus
 psi_vals_mat - 1D array of the psi valus 
 i, j = the point coordinate */
-double L_x(double *x_vals_mat, double *alpha_vals_mat, double *phi_vals_mat,
-           double *beta_vals_mat, double *gama_vals_mat, double *psi_vals_mat, int i, int j)
+double L_x(double *x_vals_mat, double *alpha_vals_mat,
+           double *phi_vals_mat, double *beta_vals_mat,
+           double *gama_vals_mat, double *psi_vals_mat, int i, int j)
 {
     double first_element, second_element, third_element, x_i_plus1_j, x_i_j,
     x_i_minus1_j, x_i_plus1_j_plus1, x_i_plus1_j_minus1, x_i_minus1_j_plus1,
@@ -607,17 +642,22 @@ double L_x(double *x_vals_mat, double *alpha_vals_mat, double *phi_vals_mat,
     x_i_j_plus1 = x_vals_mat[offset2d(i, j+1, i_max+1)];
     x_i_j_minus1 = x_vals_mat[offset2d(i, j-1, i_max+1)];
 
-    first_element = alpha_vals_mat[offset2d(i, j, i_max+1)] * ((x_i_plus1_j - 2 * x_i_j + x_i_minus1_j) +
-                    0.5 * phi_vals_mat[offset2d(i, j, i_max+1)] * (x_i_plus1_j - x_i_minus1_j));
-    second_element = 0.5 * beta_vals_mat[offset2d(i, j, i_max+1)] * (x_i_plus1_j_plus1 - x_i_plus1_j_minus1 -
+    first_element = alpha_vals_mat[offset2d(i, j, i_max+1)] *
+                    ((x_i_plus1_j - 2 * x_i_j + x_i_minus1_j) +
+                    0.5 * phi_vals_mat[offset2d(i, j, i_max+1)] *
+                    (x_i_plus1_j - x_i_minus1_j));
+    second_element = 0.5 * beta_vals_mat[offset2d(i, j, i_max+1)] *
+                     (x_i_plus1_j_plus1 - x_i_plus1_j_minus1 -
                      x_i_minus1_j_plus1 + x_i_minus1_j_minus1);
-    third_element = gama_vals_mat[offset2d(i, j, i_max+1)] * ((x_i_j_plus1 - 2 * x_i_j + x_i_j_minus1) +
-                    0.5 * psi_vals_mat[offset2d(i, j, i_max+1)] * (x_i_j_plus1 - x_i_j_minus1));
+    third_element = gama_vals_mat[offset2d(i, j, i_max+1)] *
+                    ((x_i_j_plus1 - 2 * x_i_j + x_i_j_minus1) +
+                    0.5 * psi_vals_mat[offset2d(i, j, i_max+1)] *
+                    (x_i_j_plus1 - x_i_j_minus1));
 
     return first_element - second_element + third_element;
 }
 
-/* returns the valus of L_y according to equation 10
+/* returns the valus of L_y according to equation 11
 argumetn list:
 y_vals_mat - 1D array of the y valus
 alpha_vals_mat - 1D array of the alpha valus 
@@ -627,8 +667,9 @@ gama_vals_mat - 1D array of the gama valus
 phi_vals_mat - 1D array of the phi valus
 psi_vals_mat - 1D array of the psi valus 
 i, j = the point coordinate */
-double L_y(double *y_vals_mat, double *alpha_vals_mat, double *phi_vals_mat,
-           double *beta_vals_mat, double *gama_vals_mat, double *psi_vals_mat, int i, int j)
+double L_y(double *y_vals_mat, double *alpha_vals_mat,
+           double *phi_vals_mat, double *beta_vals_mat,
+           double *gama_vals_mat, double *psi_vals_mat, int i, int j)
 {
     double first_element, second_element, third_element, y_i_plus1_j, y_i_j,
     y_i_minus1_j, y_i_plus1_j_plus1, y_i_plus1_j_minus1, y_i_minus1_j_plus1,
@@ -648,12 +689,86 @@ double L_y(double *y_vals_mat, double *alpha_vals_mat, double *phi_vals_mat,
     y_i_j_plus1 = y_vals_mat[offset2d(i, j+1, i_max+1)];
     y_i_j_minus1 = y_vals_mat[offset2d(i, j-1, i_max+1)];
 
-    first_element = alpha_vals_mat[offset2d(i, j, i_max+1)] * ((y_i_plus1_j - 2 * y_i_j + y_i_minus1_j) +
-                    0.5 * phi_vals_mat[offset2d(i, j, i_max+1)] * (y_i_plus1_j - y_i_minus1_j));
-    second_element = 0.5 * beta_vals_mat[offset2d(i, j, i_max+1)] * (y_i_plus1_j_plus1 - y_i_plus1_j_minus1 -
+    first_element = alpha_vals_mat[offset2d(i, j, i_max+1)] *
+                    ((y_i_plus1_j - 2 * y_i_j + y_i_minus1_j) +
+                    0.5 * phi_vals_mat[offset2d(i, j, i_max+1)] *
+                    (y_i_plus1_j - y_i_minus1_j));
+    second_element = 0.5 * beta_vals_mat[offset2d(i, j, i_max+1)] *
+                     (y_i_plus1_j_plus1 - y_i_plus1_j_minus1 -
                      y_i_minus1_j_plus1 + y_i_minus1_j_minus1);
-    third_element = gama_vals_mat[offset2d(i, j, i_max+1)] * ((y_i_j_plus1 - 2 * y_i_j + y_i_j_minus1) +
-                    0.5 * psi_vals_mat[offset2d(i, j, i_max+1)] * (y_i_j_plus1 - y_i_j_minus1));
+    third_element = gama_vals_mat[offset2d(i, j, i_max+1)] *
+                    ((y_i_j_plus1 - 2 * y_i_j + y_i_j_minus1) +
+                    0.5 * psi_vals_mat[offset2d(i, j, i_max+1)] *
+                    (y_i_j_plus1 - y_i_j_minus1));
 
     return first_element - second_element + third_element;
+}
+
+/* doing the first sweep according to equation 12
+argument list:
+fx_vals_mat - 1D array for the fx valus 
+fy_vals_mat - 1D array for the fy valus
+alpha_vals_mat - 1D array of the alpha valus */
+int sweep1(double *fx_vals_mat, double *fy_vals_mat, double *x_vals_mat,
+           double *alpha_vals_mat, double *phi_vals_mat,
+           double *beta_vals_mat, double *gama_vals_mat,
+           double *psi_vals_mat, int j)
+{
+    int i_index, j_index;
+
+    double *Ax = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
+    for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the matrix with zeros */
+        for (j_index = 0; j_index < j_max+1; j_index++) {
+            Ax[offset2d(i_index, j_index, i_max+1)] = 0;
+        }
+    }
+    double *Bx = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
+    for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the matrix with zeros */
+        for (j_index = 0; j_index < j_max+1; j_index++) {
+            Bx[offset2d(i_index, j_index, i_max+1)] = 0;
+        }
+    }
+    double *Cx = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
+    for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the matrix with zeros */
+        for (j_index = 0; j_index < j_max+1; j_index++) {
+            Cx[offset2d(i_index, j_index, i_max+1)] = 0;
+        }
+    }
+    double *Dx = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
+    for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the matrix with zeros */
+        for (j_index = 0; j_index < j_max+1; j_index++) {
+            Dx[offset2d(i_index, j_index, i_max+1)] = 0;
+        }
+    }
+
+    for (j_index = 0; j_index < j_max+1; j_index++) {
+        LHS_sweep1(Ax, Bx, Cx, alpha_vals_mat, j_index);
+        RHS_sweep1_x(Dx, x_vals_mat, alpha_vals_mat, phi_vals_mat,
+                     beta_vals_mat, gama_vals_mat, psi_vals_mat, j);
+    }
+}
+
+void LHS_sweep1(double *A, double *B, double *C, double *alpha_vals_mat, int j)
+{
+    int i;
+
+    for (i = 0; i < i_max+1; i++) {
+        A[offset2d(i, j, i_max+1)] = -alpha_vals_mat[offset2d(i, j, i_max+1)];
+        B[offset2d(i, j, i_max+1)] = r + 2 * alpha_vals_mat[offset2d(i, j, i_max+1)];
+        C[offset2d(i, j, i_max+1)] = -alpha_vals_mat[offset2d(i, j, i_max+1)];
+    }
+}
+
+void RHS_sweep1_x(double *D, double *x_vals_mat, double *alpha_vals_mat,
+                double *phi_vals_mat, double *beta_vals_mat,
+                double *gama_vals_mat, double *psi_vals_mat, int j)
+{
+    int i;
+    
+    for (i = 0; i < i_max+1; i++) {
+        D[offset2d(i, j, i_max+1)] = r * omega * L_x(x_vals_mat, alpha_vals_mat, 
+                                                     phi_vals_mat, beta_vals_mat,
+                                                     gama_vals_mat, psi_vals_mat,
+                                                     i, j);
+    }
 }
