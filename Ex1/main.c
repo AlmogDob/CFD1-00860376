@@ -60,6 +60,10 @@ int main(int argc, char const *argv[])
     /* decleraitons */
     char input_dir[MAXDIR], output_dir[MAXDIR];
     int i_index, j_index;
+    double *x_vals_mat_init, *y_vals_mat_init, *x_vals_mat_current,
+           *y_vals_mat_current, *x_vals_mat_next, *y_vals_mat_next,
+           *alpha_vals_mat, *beta_vals_mat, *gama_vals_mat, *psi_vals_mat,
+           *phi_vals_mat, *fx_vals_mat, *fy_vals_mat;
 
     /*------------------------------------------------------------*/
 
@@ -106,79 +110,79 @@ int main(int argc, char const *argv[])
     /*------------------------------------------------------------*/
     
     /* Memory allocation */
-    double *x_vals_mat_init = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
+    x_vals_mat_init = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
     for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the matrix with zeros */
         for (j_index = 0; j_index < j_max+1; j_index++) {
             x_vals_mat_init[offset2d(i_index, j_index, i_max+1)] = 0;
         }
     }
-    double *y_vals_mat_init = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
+    y_vals_mat_init = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
     for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the matrix with zeros */
         for (j_index = 0; j_index < j_max+1; j_index++) {
             y_vals_mat_init[offset2d(i_index, j_index, i_max+1)] = 0;
         }
     }
-    double *x_vals_mat_current = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
+    x_vals_mat_current = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
     for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the matrix with zeros */
         for (j_index = 0; j_index < j_max+1; j_index++) {
             x_vals_mat_current[offset2d(i_index, j_index, i_max+1)] = 0;
         }
     }
-    double *y_vals_mat_current = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
+    y_vals_mat_current = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
     for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the matrix with zeros */
         for (j_index = 0; j_index < j_max+1; j_index++) {
             y_vals_mat_current[offset2d(i_index, j_index, i_max+1)] = 0;
         }
     }
-    double *x_vals_mat_next = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
+    x_vals_mat_next = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
     for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the matrix with zeros */
         for (j_index = 0; j_index < j_max+1; j_index++) {
             x_vals_mat_next[offset2d(i_index, j_index, i_max+1)] = 0;
         }
     }
-    double *y_vals_mat_next = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
+    y_vals_mat_next = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
     for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the matrix with zeros */
         for (j_index = 0; j_index < j_max+1; j_index++) {
             y_vals_mat_next[offset2d(i_index, j_index, i_max+1)] = 0;
         }
     }
-    double *alpha_vals_mat = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
+    alpha_vals_mat = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
     for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the matrix with zeros */
         for (j_index = 0; j_index < j_max+1; j_index++) {
             alpha_vals_mat[offset2d(i_index, j_index, i_max+1)] = 0;
         }
     }
-    double *beta_vals_mat = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
+    beta_vals_mat = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
     for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the matrix with zeros */
         for (j_index = 0; j_index < j_max+1; j_index++) {
             beta_vals_mat[offset2d(i_index, j_index, i_max+1)] = 0;
         }
     }
-    double *gama_vals_mat = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
+    gama_vals_mat = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
     for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the matrix with zeros */
         for (j_index = 0; j_index < j_max+1; j_index++) {
             gama_vals_mat[offset2d(i_index, j_index, i_max+1)] = 0;
         }
     }
-    double *psi_vals_mat = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
+    psi_vals_mat = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
     for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the matrix with zeros */
         for (j_index = 0; j_index < j_max+1; j_index++) {
             psi_vals_mat[offset2d(i_index, j_index, i_max+1)] = 0;
         }
     }
-    double *phi_vals_mat = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
+    phi_vals_mat = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
     for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the matrix with zeros */
         for (j_index = 0; j_index < j_max+1; j_index++) {
             phi_vals_mat[offset2d(i_index, j_index, i_max+1)] = 0;
         }
     }
-    double *fx_vals_mat = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
+    fx_vals_mat = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
     for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the matrix with zeros */
         for (j_index = 0; j_index < j_max+1; j_index++) {
             fx_vals_mat[offset2d(i_index, j_index, i_max+1)] = 0;
         }
     }
-    double *fy_vals_mat = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
+    fy_vals_mat = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
     for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the matrix with zeros */
         for (j_index = 0; j_index < j_max+1; j_index++) {
             fy_vals_mat[offset2d(i_index, j_index, i_max+1)] = 0;
