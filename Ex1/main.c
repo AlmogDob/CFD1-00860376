@@ -31,6 +31,7 @@ void psi_phi(double *psi_vals_mat, double *phi_vals_mat,
              double *x_vals_mat, double *y_vals_mat);
 void copy_mat(double *dst, double *src);
 void copy_row_to_mat(double *dst, double *src, int row_num);
+void copy_col_to_mat(double *dst, double *src, int col_num);
 double L_x(double *x_vals_mat, double *alpha_vals_mat,
            double *phi_vals_mat, double *beta_vals_mat,
            double *gama_vals_mat, double *psi_vals_mat, int i, int j);
@@ -40,30 +41,44 @@ double L_y(double *y_vals_mat, double *alpha_vals_mat,
 int sweep1(double *fx_vals_mat, double *fy_vals_mat, double *x_vals_mat,
            double *y_vals_mat, double *alpha_vals_mat, double *phi_vals_mat,
            double *beta_vals_mat, double *gama_vals_mat, double *psi_vals_mat);
+int sweep2(double *Cx_vals_mat, double *Cy_vals_mat, double *fx_vals_mat,
+           double *fy_vals_mat, double *gama_vals_mat);
 void LHS_sweep1(double *A, double *B, double *C, double *alpha_vals_mat, int j);
+void LHS_sweep2(double *A, double *B, double *C, double *alpha_vals_mat, int i);
 void RHS_sweep1_x(double *D, double *x_vals_mat, double *alpha_vals_mat,
                 double *phi_vals_mat, double *beta_vals_mat,
                 double *gama_vals_mat, double *psi_vals_mat, int j);
+void RHS_sweep2_x(double *D,double *fx_vals_mat, int j);
 void RHS_sweep1_y(double *D, double *y_vals_mat, double *alpha_vals_mat,
                 double *phi_vals_mat, double *beta_vals_mat,
                 double *gama_vals_mat, double *psi_vals_mat, int j);
-void BC_sweep(double *A, double *B, double *C, double *D);
+void RHS_sweep2_y(double *D,double *fy_vals_mat, int i);
+void BC_sweep1(double *A, double *B, double *C, double *D);
+void BC_sweep2(double *A, double *B, double *C, double *D);
 int tridiag(double *a, double *b, double *c, double *d,
-              double *u, int is, int ie);
+            double *u, int is, int ie);
+int step(double *Cx_vals_mat, double *Cy_vals_mat, double *fx_vals_mat,
+         double *fy_vals_mat, double *x_vals_mat_current,
+         double *x_vals_mat_next, double *y_vals_mat_current,
+         double *y_vals_mat_next, double *alpha_vals_mat,
+         double *phi_vals_mat, double *beta_vals_mat,
+         double *gama_vals_mat, double *psi_vals_mat);
 
 /* Input variables */
 double t, delta_x, delta_y, XSF, YSF, x_int = 1, r, omega;
 int i_max, j_max, i_TEL, i_LE, i_TEU, i_min = 0, j_min = 0;
 
+
 int main(int argc, char const *argv[])
 {
     /* decleraitons */
     char input_dir[MAXDIR], output_dir[MAXDIR];
-    int i_index, j_index;
+    int i_index, j_index, success = 0;
     double *x_vals_mat_init, *y_vals_mat_init, *x_vals_mat_current,
            *y_vals_mat_current, *x_vals_mat_next, *y_vals_mat_next,
            *alpha_vals_mat, *beta_vals_mat, *gama_vals_mat, *psi_vals_mat,
-           *phi_vals_mat, *fx_vals_mat, *fy_vals_mat;
+           *phi_vals_mat, *fx_vals_mat, *fy_vals_mat, *Cx_vals_mat,
+           *Cy_vals_mat;
 
     /*------------------------------------------------------------*/
 
@@ -188,6 +203,18 @@ int main(int argc, char const *argv[])
             fy_vals_mat[offset2d(i_index, j_index, i_max+1)] = 0;
         }
     }
+    Cx_vals_mat = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
+    for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the matrix with zeros */
+        for (j_index = 0; j_index < j_max+1; j_index++) {
+            Cx_vals_mat[offset2d(i_index, j_index, i_max+1)] = 0;
+        }
+    }
+    Cy_vals_mat = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
+    for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the matrix with zeros */
+        for (j_index = 0; j_index < j_max+1; j_index++) {
+            Cy_vals_mat[offset2d(i_index, j_index, i_max+1)] = 0;
+        }
+    }
 
     /*------------------------------------------------------------*/
     
@@ -199,18 +226,34 @@ int main(int argc, char const *argv[])
     copy_mat(y_vals_mat_current, y_vals_mat_init);
     copy_mat(y_vals_mat_next, y_vals_mat_init);
 
-    sweep1(fx_vals_mat, fy_vals_mat, x_vals_mat_current, y_vals_mat_current,
-           alpha_vals_mat, phi_vals_mat, beta_vals_mat,
-           gama_vals_mat, psi_vals_mat);
+    for (i_index = 0; i_index < 1; i_index++) {
+        success = step(Cx_vals_mat, Cy_vals_mat, fx_vals_mat, fy_vals_mat, x_vals_mat_current,
+            x_vals_mat_next, y_vals_mat_current, y_vals_mat_next, alpha_vals_mat,
+            phi_vals_mat, beta_vals_mat, gama_vals_mat, psi_vals_mat);
+        if (success == 1) {
+            fprintf(stderr, "ERROR: Step - sweep 1\n");
+            exit(1);
+        }
+        if (success == 2) {
+            fprintf(stderr, "ERROR: Step - sweep 2\n");
+            exit(2);
+        }
 
+        copy_mat(x_vals_mat_current, x_vals_mat_next);
+        copy_mat(y_vals_mat_current, y_vals_mat_next);
+    }
     /*------------------------------------------------------------*/
 
     Mat xmat = {.cols = i_max+1, .rows = j_max+1, .stride = i_max+1, .elements = x_vals_mat_init}; /* for debuging */
     Mat ymat = {.cols = i_max+1, .rows = j_max+1, .stride = i_max+1, .elements = y_vals_mat_init}; 
     Mat xCurrentMat = {.cols = i_max+1, .rows = j_max+1, .stride = i_max+1, .elements = x_vals_mat_current}; 
     Mat yCurrentMat = {.cols = i_max+1, .rows = j_max+1, .stride = i_max+1, .elements = y_vals_mat_current}; 
+    Mat xnextMat = {.cols = i_max+1, .rows = j_max+1, .stride = i_max+1, .elements = x_vals_mat_next}; 
+    Mat ynextMat = {.cols = i_max+1, .rows = j_max+1, .stride = i_max+1, .elements = y_vals_mat_next}; 
     Mat fxMat = {.cols = i_max+1, .rows = j_max+1, .stride = i_max+1, .elements = fx_vals_mat}; 
     Mat fyMat = {.cols = i_max+1, .rows = j_max+1, .stride = i_max+1, .elements = fy_vals_mat}; 
+    Mat CxMat = {.cols = i_max+1, .rows = j_max+1, .stride = i_max+1, .elements = Cx_vals_mat}; 
+    Mat CyMat = {.cols = i_max+1, .rows = j_max+1, .stride = i_max+1, .elements = Cy_vals_mat}; 
 
     // for (i_index = 0; i_index < i_max+1; i_index++) {
     //     alpha_vals_mat[offset2d(i_index, j_max, i_max+1)] = 3;
@@ -218,15 +261,23 @@ int main(int argc, char const *argv[])
 
     // MAT_PRINT(xmat);
     // MAT_PRINT(ymat);
-    // MAT_PRINT(fyMat);
+    MAT_PRINT(CxMat);
 
-    // FILE *fp = fopen("x_mat_output.txt", "wt");
-    // mat_print_to_file(fp, xmat, "");
-    // fclose(fp);
+    FILE *fp = fopen("x_mat_current.txt", "wt");
+    mat_print_to_file(fp, xCurrentMat, "");
+    fclose(fp);
 
-    // fp = fopen("y_mat_output.txt", "wt");
-    // mat_print_to_file(fp, ymat, "");
-    // fclose(fp);
+    fp = fopen("y_mat_current.txt", "wt");
+    mat_print_to_file(fp, yCurrentMat, "");
+    fclose(fp);
+
+    fp = fopen("x_mat_next.txt", "wt");
+    mat_print_to_file(fp, xnextMat, "");
+    fclose(fp);
+
+    fp = fopen("y_mat_next.txt", "wt");
+    mat_print_to_file(fp, ynextMat, "");
+    fclose(fp);
 
     return 0;
 }
@@ -624,6 +675,15 @@ void copy_row_to_mat(double *dst, double *src, int row_num)
     }
 }
 
+void copy_col_to_mat(double *dst, double *src, int col_num)
+{
+    int j;
+    
+    for (j = 0; j < i_max+1; j++) {
+        dst[offset2d(col_num, j, i_max+1)] = src[j];
+    }
+}
+
 /* returns the valus of L_x according to equation 10
 argumetn list:
 x_vals_mat - 1D array of the x valus
@@ -778,7 +838,7 @@ int sweep1(double *fx_vals_mat, double *fy_vals_mat, double *x_vals_mat,
         LHS_sweep1(Ax, Bx, Cx, alpha_vals_mat, j_index);
         RHS_sweep1_x(Dx, x_vals_mat, alpha_vals_mat, phi_vals_mat,
                      beta_vals_mat, gama_vals_mat, psi_vals_mat, j_index);
-        BC_sweep(Ax, Bx, Cx, Dx);
+        BC_sweep1(Ax, Bx, Cx, Dx);
         success = tridiag(Ax, Bx, Cx, Dx, temp_row, 0, i_max);
         if (success == 1) {
             break;
@@ -788,7 +848,7 @@ int sweep1(double *fx_vals_mat, double *fy_vals_mat, double *x_vals_mat,
         LHS_sweep1(Ay, By, Cy, alpha_vals_mat, j_index);
         RHS_sweep1_y(Dy, y_vals_mat, alpha_vals_mat, phi_vals_mat,
                      beta_vals_mat, gama_vals_mat, psi_vals_mat, j_index);
-        BC_sweep(Ay, By, Cy, Dy);
+        BC_sweep1(Ay, By, Cy, Dy);
         success = tridiag(Ay, By, Cy, Dy, temp_row, 0, i_max);
         if (success == 1) {
             break;
@@ -798,6 +858,114 @@ int sweep1(double *fx_vals_mat, double *fy_vals_mat, double *x_vals_mat,
     if (success == 1) {
         return 1;
     }
+
+    free(Ax);
+    free(Bx);
+    free(Cx);
+    free(Dx);
+    free(Ay);
+    free(By);
+    free(Cy);
+    free(Dy);
+    free(temp_row);
+
+    return 0;
+}
+
+/* doing the first sweep according to equation 13;
+returns 0 on success
+argument list:
+Cx_vals_mat - 1D array for the Cx valus 
+Cy_vals_mat - 1D array for the Cy valus
+fx_vals_mat - 1D array of the fx valus
+fy_vals_mat - 1D array of the fy valus
+gama_vals_mat - 1D array of the gama valus */
+int sweep2(double *Cx_vals_mat, double *Cy_vals_mat, double *fx_vals_mat,
+           double *fy_vals_mat, double *gama_vals_mat)
+{
+    int i_index, j_index, success = 0;
+
+    /* memory allocating */
+    double *Ax2 = (double *)malloc(sizeof(double) * (j_max + 1));
+    for (j_index = 0; j_index < j_max+1; j_index++) {   /* filling the array with zeros */
+        Ax2[j_index] = 0;
+    }
+    double *Bx2 = (double *)malloc(sizeof(double) * (j_max + 1));
+    for (j_index = 0; j_index < j_max+1; j_index++) {   /* filling the array with zeros */
+        Bx2[j_index] = 0;
+    }
+    double *Cx2 = (double *)malloc(sizeof(double) * (j_max + 1));
+    for (j_index = 0; j_index < j_max+1; j_index++) {   /* filling the array with zeros */
+        Cx2[j_index] = 0;
+    }
+    double *Dx2 = (double *)malloc(sizeof(double) * (j_max + 1));
+    for (j_index = 0; j_index < j_max+1; j_index++) {   /* filling the array with zeros */
+        Dx2[j_index] = 0;
+    }
+    double *Ay2 = (double *)malloc(sizeof(double) * (j_max + 1));
+    for (j_index = 0; j_index < j_max+1; j_index++) {   /* filling the array with zeros */
+        Ay2[j_index] = 0;
+    }
+    double *By2 = (double *)malloc(sizeof(double) * (j_max + 1));
+    for (j_index = 0; j_index < j_max+1; j_index++) {   /* filling the array with zeros */
+        By2[j_index] = 0;
+    }
+    double *Cy2 = (double *)malloc(sizeof(double) * (j_max + 1));
+    for (j_index = 0; j_index < j_max+1; j_index++) {   /* filling the array with zeros */
+        Cy2[j_index] = 0;
+    }
+    double *Dy2 = (double *)malloc(sizeof(double) * (j_max + 1));
+    for (j_index = 0; j_index < j_max+1; j_index++) {   /* filling the array with zeros */
+        Dy2[j_index] = 0;
+    }
+    double *temp_row2 = (double *)malloc(sizeof(double) * (j_max + 1));
+    for (j_index = 0; j_index < j_max+1; j_index++) {   /* filling the array with zeros */
+        temp_row2[j_index] = 0;
+    }
+
+    /* solving for each i */
+    for (i_index = 0; i_index < i_max+1; i_index++) {
+        LHS_sweep2(Ax2, Bx2, Cx2, gama_vals_mat, i_index);
+        RHS_sweep2_x(Dx2, fx_vals_mat, i_index);
+        BC_sweep2(Ax2, Bx2, Cx2, Dx2);
+        /*test*/
+        // for (int index = 0; index < j_max+1; index++) {
+        //     printf("%g\n", Bx2[index]);
+        // }
+        /*test*/
+        success = tridiag(Ax2, Bx2, Cx2, Dx2, temp_row2, 0, j_max);
+        if (success == 1) {
+            printf("1\n");
+            break;
+        }
+        copy_col_to_mat(Cx_vals_mat, temp_row2, i_index);
+
+        LHS_sweep2(Ay2, By2, Cy2, gama_vals_mat, i_index);
+        RHS_sweep2_y(Dy2, fy_vals_mat, i_index);
+        BC_sweep2(Ay2, By2, Cy2, Dy2);
+        success = tridiag(Ay2, By2, Cy2, Dy2, temp_row2, 0, j_max);
+        if (success == 1) {
+            printf("2\n");
+            break;
+        }
+        copy_col_to_mat(Cy_vals_mat, temp_row2, i_index);
+    }
+    if (success == 1) {
+        return 1;
+    }
+    
+    // free(Ax2);
+        printf("helo\n");
+    free(Bx2);
+    free(Cx2);
+    free(Dx2);
+    free(Ay2);
+    free(By2);
+    free(Cy2);
+    free(Dy2);
+    free(temp_row2);
+        printf("here\n");
+
     return 0;
 }
 
@@ -816,6 +984,24 @@ void LHS_sweep1(double *A, double *B, double *C, double *alpha_vals_mat, int j)
         A[i] = -alpha_vals_mat[offset2d(i, j, i_max+1)];
         B[i] = r + 2 * alpha_vals_mat[offset2d(i, j, i_max+1)];
         C[i] = -alpha_vals_mat[offset2d(i, j, i_max+1)];
+    }
+}
+
+/* populates the A, B, C vectors accoding to eq 15 
+argument list:
+A - 1D array for the A valus 
+B - 1D array for the B valus 
+C - 1D array for the C valus
+alpha_vals_mat - 1D array of the alpha valus
+j - the row number */
+void LHS_sweep2(double *A, double *B, double *C, double *gama_vals_mat, int i)
+{
+    int j;
+
+    for (j = 0; j < j_max+1; j++) {
+        A[j] = -gama_vals_mat[offset2d(i, j, i_max+1)];
+        B[j] = r + 2 * gama_vals_mat[offset2d(i, j, i_max+1)];
+        C[j] = -gama_vals_mat[offset2d(i, j, i_max+1)];
     }
 }
 
@@ -845,6 +1031,20 @@ void RHS_sweep1_x(double *D, double *x_vals_mat, double *alpha_vals_mat,
 /* populates the D vectors accoding to eq 15 
 argument list:
 D - 1D array for the D valus 
+fx_vals_mat - 1D array of the fx valus
+i - the row number */
+void RHS_sweep2_x(double *D,double *fx_vals_mat, int i)
+{
+    int j;
+    
+    for (j = 0; j < j_max+1; j++) {
+        D[j] = fx_vals_mat[offset2d(i, j, i_max+1)];
+    }
+}
+
+/* populates the D vectors accoding to eq 15 
+argument list:
+D - 1D array for the D valus 
 y_vals_mat - 1D array of the y valus
 alpha_vals_mat - 1D array of the alpha valus
 phi_vals_mat - 1D array of the phi valus
@@ -865,11 +1065,25 @@ void RHS_sweep1_y(double *D, double *y_vals_mat, double *alpha_vals_mat,
     }
 }
 
-/* applaying the boundary conditions on the A, B, C and D vectors 
+/* populates the D vectors accoding to eq 15 
+argument list:
+D - 1D array for the D valus 
+fy_vals_mat - 1D array of the fy valus
+i - the row number */
+void RHS_sweep2_y(double *D,double *fy_vals_mat, int i)
+{
+    int j;
+    
+    for (j = 0; j < j_max+1; j++) {
+        D[j] = fy_vals_mat[offset2d(i, j, i_max+1)];
+    }
+}
+
+/* applaying the boundary conditions on the A, B, C and D vectors according to eq 16
 argument list:
 A, B, C are the tridaig diaganols
 D is the RHS vector */
-void BC_sweep(double *A, double *B, double *C, double *D)
+void BC_sweep1(double *A, double *B, double *C, double *D)
 {
     A[0] = 0;
     B[0] = 1;
@@ -879,6 +1093,22 @@ void BC_sweep(double *A, double *B, double *C, double *D)
     B[i_max] = 1;
     C[i_max] = 0;
     D[i_max] = 0;
+}
+
+/* applaying the boundary conditions on the A, B, C and D vectors according to eq 16
+argument list:
+A, B, C are the tridaig diaganols
+D is the RHS vector */
+void BC_sweep2(double *A, double *B, double *C, double *D)
+{
+    A[0] = 0;
+    B[0] = 1;
+    C[0] = 0;
+    D[0] = 0;
+    A[j_max] = 0;
+    B[j_max] = 1;
+    C[j_max] = 0;
+    D[j_max] = 0;
 }
 
 /* a, b, c, are the vectors of the diagonal and the two
@@ -907,3 +1137,49 @@ int tridiag(double *a, double *b, double *c, double *d, double *u, int is, int i
     return (0);
 } 
 
+/* doing the first sweep according to eq 9-17;
+returns 0 on success
+argument list:
+Cx_vals_mat - 1D array of the Cx valus 
+Cy_vals_mat - 1D array of the Cy valus
+fx_vals_mat - 1D array of the fx valus 
+fy_vals_mat - 1D array of the fy valus
+x_vals_mat_current - 1D array of the current x valus
+x_vals_mat_next - 1D array of the next x valus
+y_vals_mat_current - 1D array of the current y valus
+y_vals_mat_next - 1D array of the next y valus
+alpha_vals_mat - 1D array of the alpha valus 
+phi_vals_mat - 1D array of the phi valus
+beta_vals_mat - 1D array of the beta valus
+gama_vals_mat - 1D array of the gama valus
+psi_vals_mat - 1D array of the psi valus */
+int step(double *Cx_vals_mat, double *Cy_vals_mat, double *fx_vals_mat,
+         double *fy_vals_mat, double *x_vals_mat_current,
+         double *x_vals_mat_next, double *y_vals_mat_current,
+         double *y_vals_mat_next, double *alpha_vals_mat,
+         double *phi_vals_mat, double *beta_vals_mat,
+         double *gama_vals_mat, double *psi_vals_mat)
+{
+    int success, i, j, index; 
+
+    success = sweep1(fx_vals_mat, fy_vals_mat, x_vals_mat_current,
+           y_vals_mat_current, alpha_vals_mat, phi_vals_mat,
+           beta_vals_mat, gama_vals_mat, psi_vals_mat);
+    if (success != 0) {
+        return 1;
+    }
+    success = sweep2(Cx_vals_mat, Cy_vals_mat, fx_vals_mat, fy_vals_mat, gama_vals_mat);
+    if (success != 0) {
+        return 2;
+    }
+
+    for (i = 0; i < i_max+1; i++) {
+        for (j = 0; j < j_max+1; j++) {
+            index = offset2d(i, j, i_max+1);
+            x_vals_mat_next[index] = Cx_vals_mat[index] + x_vals_mat_current[index];
+            y_vals_mat_next[index] = Cy_vals_mat[index] + y_vals_mat_current[index];
+        }
+    }
+    
+    return 0;
+}
