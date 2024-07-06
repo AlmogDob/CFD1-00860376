@@ -63,11 +63,15 @@ int step(double *Cx_vals_mat, double *Cy_vals_mat, double *fx_vals_mat,
          double *y_vals_mat_next, double *alpha_vals_mat,
          double *phi_vals_mat, double *beta_vals_mat,
          double *gama_vals_mat, double *psi_vals_mat);
+void mat_print_to_file(FILE *fp, double *data);
 
 /* Input variables */
 double t, delta_x, delta_y, XSF, YSF, x_int = 1, r, omega;
 int i_max, j_max, i_TEL, i_LE, i_TEU, i_min = 0, j_min = 0;
 
+/* matrix diaganosl for different sweeps */
+double *Ax, *Ax2, *Bx, *Bx2, *Cx, *Cx2, *Dx, *Dx2,
+*Ay, *Ay2, *By, *By2, *Cy, *Cy2, *Dy, *Dy2, *temp_row, *temp_row2;
 
 int main(int argc, char const *argv[])
 {
@@ -216,6 +220,80 @@ int main(int argc, char const *argv[])
         }
     }
 
+    // Ax = (double *)malloc(sizeof(double) * (i_max + 1));
+    // for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the array with zeros */
+    //     Ax[i_index] = 0;
+    // }
+    // Bx = (double *)malloc(sizeof(double) * (i_max + 1));
+    // for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the array with zeros */
+    //     Bx[i_index] = 0;
+    // }
+    // Cx = (double *)malloc(sizeof(double) * (i_max + 1));
+    // for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the array with zeros */
+    //     Cx[i_index] = 0;
+    // }
+    // Dx = (double *)malloc(sizeof(double) * (i_max + 1));
+    // for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the array with zeros */
+    //     Dx[i_index] = 0;
+    // }
+    // Ay = (double *)malloc(sizeof(double) * (i_max + 1));
+    // for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the array with zeros */
+    //     Ay[i_index] = 0;
+    // }
+    // By = (double *)malloc(sizeof(double) * (i_max + 1));
+    // for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the array with zeros */
+    //     By[i_index] = 0;
+    // }
+    // Cy = (double *)malloc(sizeof(double) * (i_max + 1));
+    // for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the array with zeros */
+    //     Cy[i_index] = 0;
+    // }
+    // Dy = (double *)malloc(sizeof(double) * (i_max + 1));
+    // for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the array with zeros */
+    //     Dy[i_index] = 0;
+    // }
+    // temp_row = (double *)malloc(sizeof(double) * (i_max + 1));
+    // for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the array with zeros */
+    //     temp_row[i_index] = 0;
+    // }
+    // Ax2 = (double *)malloc(sizeof(double) * (j_max + 1));
+    // for (j_index = 0; j_index < j_max+1; j_index++) {   /* filling the array with zeros */
+    //     Ax2[j_index] = 0;
+    // }
+    // Bx2 = (double *)malloc(sizeof(double) * (j_max + 1));
+    // for (j_index = 0; j_index < j_max+1; j_index++) {   /* filling the array with zeros */
+    //     Bx2[j_index] = 0;
+    // }
+    // Cx2 = (double *)malloc(sizeof(double) * (j_max + 1));
+    // for (j_index = 0; j_index < j_max+1; j_index++) {   /* filling the array with zeros */
+    //     Cx2[j_index] = 0;
+    // }
+    // Dx2 = (double *)malloc(sizeof(double) * (j_max + 1));
+    // for (j_index = 0; j_index < j_max+1; j_index++) {   /* filling the array with zeros */
+    //     Dx2[j_index] = 0;
+    // }
+    // Ay2 = (double *)malloc(sizeof(double) * (j_max + 1));
+    // for (j_index = 0; j_index < j_max+1; j_index++) {   /* filling the array with zeros */
+    //     Ay2[j_index] = 0;
+    // }
+    // By2 = (double *)malloc(sizeof(double) * (j_max + 1));
+    // for (j_index = 0; j_index < j_max+1; j_index++) {   /* filling the array with zeros */
+    //     By2[j_index] = 0;
+    // }
+    // Cy2 = (double *)malloc(sizeof(double) * (j_max + 1));
+    // for (j_index = 0; j_index < j_max+1; j_index++) {   /* filling the array with zeros */
+    //     Cy2[j_index] = 0;
+    // }
+    // Dy2 = (double *)malloc(sizeof(double) * (j_max + 1));
+    // for (j_index = 0; j_index < j_max+1; j_index++) {   /* filling the array with zeros */
+    //     Dy2[j_index] = 0;
+    // }
+    // temp_row2 = (double *)malloc(sizeof(double) * (j_max + 1));
+    // for (j_index = 0; j_index < j_max+1; j_index++) {   /* filling the array with zeros */
+    //     temp_row2[j_index] = 0;
+    // }
+
+
     /*------------------------------------------------------------*/
     
     initialize(x_vals_mat_init, y_vals_mat_init, alpha_vals_mat, beta_vals_mat, gama_vals_mat,
@@ -226,58 +304,33 @@ int main(int argc, char const *argv[])
     copy_mat(y_vals_mat_current, y_vals_mat_init);
     copy_mat(y_vals_mat_next, y_vals_mat_init);
 
-    for (i_index = 0; i_index < 1; i_index++) {
-        success = step(Cx_vals_mat, Cy_vals_mat, fx_vals_mat, fy_vals_mat, x_vals_mat_current,
-            x_vals_mat_next, y_vals_mat_current, y_vals_mat_next, alpha_vals_mat,
-            phi_vals_mat, beta_vals_mat, gama_vals_mat, psi_vals_mat);
-        if (success == 1) {
-            fprintf(stderr, "ERROR: Step - sweep 1\n");
-            exit(1);
-        }
-        if (success == 2) {
-            fprintf(stderr, "ERROR: Step - sweep 2\n");
-            exit(2);
-        }
+    // for (i_index = 0; i_index < 1; i_index++) {
+    //     success = step(Cx_vals_mat, Cy_vals_mat, fx_vals_mat, fy_vals_mat, x_vals_mat_current,
+    //         x_vals_mat_next, y_vals_mat_current, y_vals_mat_next, alpha_vals_mat,
+    //         phi_vals_mat, beta_vals_mat, gama_vals_mat, psi_vals_mat);
+    //     if (success == 1) {
+    //         fprintf(stderr, "ERROR: Step - sweep 1\n");
+    //         exit(1);
+    //     }
+    //     if (success == 2) {
+    //         fprintf(stderr, "ERROR: Step - sweep 2\n");
+    //         exit(2);
+    //     }
 
-        copy_mat(x_vals_mat_current, x_vals_mat_next);
-        copy_mat(y_vals_mat_current, y_vals_mat_next);
-    }
+    //     copy_mat(x_vals_mat_current, x_vals_mat_next);
+    //     copy_mat(y_vals_mat_current, y_vals_mat_next);
+    // }
     /*------------------------------------------------------------*/
 
-    Mat xmat = {.cols = i_max+1, .rows = j_max+1, .stride = i_max+1, .elements = x_vals_mat_init}; /* for debuging */
-    Mat ymat = {.cols = i_max+1, .rows = j_max+1, .stride = i_max+1, .elements = y_vals_mat_init}; 
-    Mat xCurrentMat = {.cols = i_max+1, .rows = j_max+1, .stride = i_max+1, .elements = x_vals_mat_current}; 
-    Mat yCurrentMat = {.cols = i_max+1, .rows = j_max+1, .stride = i_max+1, .elements = y_vals_mat_current}; 
-    Mat xnextMat = {.cols = i_max+1, .rows = j_max+1, .stride = i_max+1, .elements = x_vals_mat_next}; 
-    Mat ynextMat = {.cols = i_max+1, .rows = j_max+1, .stride = i_max+1, .elements = y_vals_mat_next}; 
-    Mat fxMat = {.cols = i_max+1, .rows = j_max+1, .stride = i_max+1, .elements = fx_vals_mat}; 
-    Mat fyMat = {.cols = i_max+1, .rows = j_max+1, .stride = i_max+1, .elements = fy_vals_mat}; 
-    Mat CxMat = {.cols = i_max+1, .rows = j_max+1, .stride = i_max+1, .elements = Cx_vals_mat}; 
-    Mat CyMat = {.cols = i_max+1, .rows = j_max+1, .stride = i_max+1, .elements = Cy_vals_mat}; 
+    Mat mat = mat_alloc(5, 5);
+    mat_fill(mat, 1);
+    MAT_PRINT(mat);
 
-    // for (i_index = 0; i_index < i_max+1; i_index++) {
-    //     alpha_vals_mat[offset2d(i_index, j_max, i_max+1)] = 3;
-    // }
+    FILE *fp;
 
-    // MAT_PRINT(xmat);
-    // MAT_PRINT(ymat);
-    MAT_PRINT(CxMat);
-
-    FILE *fp = fopen("x_mat_current.txt", "wt");
-    mat_print_to_file(fp, xCurrentMat, "");
+    fp = fopen("x_mat_current.txt", "wt");
     fclose(fp);
 
-    fp = fopen("y_mat_current.txt", "wt");
-    mat_print_to_file(fp, yCurrentMat, "");
-    fclose(fp);
-
-    fp = fopen("x_mat_next.txt", "wt");
-    mat_print_to_file(fp, xnextMat, "");
-    fclose(fp);
-
-    fp = fopen("y_mat_next.txt", "wt");
-    mat_print_to_file(fp, ynextMat, "");
-    fclose(fp);
 
     return 0;
 }
@@ -795,44 +848,6 @@ int sweep1(double *fx_vals_mat, double *fy_vals_mat, double *x_vals_mat,
 {
     int i_index, j_index, success = 0;
 
-    /* memory allocating */
-    double *Ax = (double *)malloc(sizeof(double) * (i_max + 1));
-    for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the array with zeros */
-        Ax[i_index] = 0;
-    }
-    double *Bx = (double *)malloc(sizeof(double) * (i_max + 1));
-    for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the array with zeros */
-        Bx[i_index] = 0;
-    }
-    double *Cx = (double *)malloc(sizeof(double) * (i_max + 1));
-    for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the array with zeros */
-        Cx[i_index] = 0;
-    }
-    double *Dx = (double *)malloc(sizeof(double) * (i_max + 1));
-    for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the array with zeros */
-        Dx[i_index] = 0;
-    }
-    double *Ay = (double *)malloc(sizeof(double) * (i_max + 1));
-    for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the array with zeros */
-        Ay[i_index] = 0;
-    }
-    double *By = (double *)malloc(sizeof(double) * (i_max + 1));
-    for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the array with zeros */
-        By[i_index] = 0;
-    }
-    double *Cy = (double *)malloc(sizeof(double) * (i_max + 1));
-    for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the array with zeros */
-        Cy[i_index] = 0;
-    }
-    double *Dy = (double *)malloc(sizeof(double) * (i_max + 1));
-    for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the array with zeros */
-        Dy[i_index] = 0;
-    }
-    double *temp_row = (double *)malloc(sizeof(double) * (i_max + 1));
-    for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the array with zeros */
-        temp_row[i_index] = 0;
-    }
-
     /* solving for each j */
     for (j_index = 0; j_index < j_max+1; j_index++) {
         LHS_sweep1(Ax, Bx, Cx, alpha_vals_mat, j_index);
@@ -859,16 +874,6 @@ int sweep1(double *fx_vals_mat, double *fy_vals_mat, double *x_vals_mat,
         return 1;
     }
 
-    free(Ax);
-    free(Bx);
-    free(Cx);
-    free(Dx);
-    free(Ay);
-    free(By);
-    free(Cy);
-    free(Dy);
-    free(temp_row);
-
     return 0;
 }
 
@@ -885,86 +890,41 @@ int sweep2(double *Cx_vals_mat, double *Cy_vals_mat, double *fx_vals_mat,
 {
     int i_index, j_index, success = 0;
 
-    /* memory allocating */
-    double *Ax2 = (double *)malloc(sizeof(double) * (j_max + 1));
-    for (j_index = 0; j_index < j_max+1; j_index++) {   /* filling the array with zeros */
-        Ax2[j_index] = 0;
-    }
-    double *Bx2 = (double *)malloc(sizeof(double) * (j_max + 1));
-    for (j_index = 0; j_index < j_max+1; j_index++) {   /* filling the array with zeros */
-        Bx2[j_index] = 0;
-    }
-    double *Cx2 = (double *)malloc(sizeof(double) * (j_max + 1));
-    for (j_index = 0; j_index < j_max+1; j_index++) {   /* filling the array with zeros */
-        Cx2[j_index] = 0;
-    }
-    double *Dx2 = (double *)malloc(sizeof(double) * (j_max + 1));
-    for (j_index = 0; j_index < j_max+1; j_index++) {   /* filling the array with zeros */
-        Dx2[j_index] = 0;
-    }
-    double *Ay2 = (double *)malloc(sizeof(double) * (j_max + 1));
-    for (j_index = 0; j_index < j_max+1; j_index++) {   /* filling the array with zeros */
-        Ay2[j_index] = 0;
-    }
-    double *By2 = (double *)malloc(sizeof(double) * (j_max + 1));
-    for (j_index = 0; j_index < j_max+1; j_index++) {   /* filling the array with zeros */
-        By2[j_index] = 0;
-    }
-    double *Cy2 = (double *)malloc(sizeof(double) * (j_max + 1));
-    for (j_index = 0; j_index < j_max+1; j_index++) {   /* filling the array with zeros */
-        Cy2[j_index] = 0;
-    }
-    double *Dy2 = (double *)malloc(sizeof(double) * (j_max + 1));
-    for (j_index = 0; j_index < j_max+1; j_index++) {   /* filling the array with zeros */
-        Dy2[j_index] = 0;
-    }
-    double *temp_row2 = (double *)malloc(sizeof(double) * (j_max + 1));
-    for (j_index = 0; j_index < j_max+1; j_index++) {   /* filling the array with zeros */
-        temp_row2[j_index] = 0;
-    }
-
     /* solving for each i */
     for (i_index = 0; i_index < i_max+1; i_index++) {
-        LHS_sweep2(Ax2, Bx2, Cx2, gama_vals_mat, i_index);
-        RHS_sweep2_x(Dx2, fx_vals_mat, i_index);
-        BC_sweep2(Ax2, Bx2, Cx2, Dx2);
+        LHS_sweep2(Ax, Bx, Cx, gama_vals_mat, i_index);
+        RHS_sweep2_x(Dx, fx_vals_mat, i_index);
+        BC_sweep2(Ax, Bx, Cx, Dx);
         /*test*/
         // for (int index = 0; index < j_max+1; index++) {
         //     printf("%g\n", Bx2[index]);
         // }
         /*test*/
-        success = tridiag(Ax2, Bx2, Cx2, Dx2, temp_row2, 0, j_max);
+        success = tridiag(Ax, Bx, Cx, Dx, temp_row, 0, j_max);
         if (success == 1) {
             printf("1\n");
             break;
         }
-        copy_col_to_mat(Cx_vals_mat, temp_row2, i_index);
+        copy_col_to_mat(Cx_vals_mat, temp_row, i_index);
 
-        LHS_sweep2(Ay2, By2, Cy2, gama_vals_mat, i_index);
-        RHS_sweep2_y(Dy2, fy_vals_mat, i_index);
-        BC_sweep2(Ay2, By2, Cy2, Dy2);
-        success = tridiag(Ay2, By2, Cy2, Dy2, temp_row2, 0, j_max);
+        LHS_sweep2(Ay, By, Cy, gama_vals_mat, i_index);
+        RHS_sweep2_y(Dy, fy_vals_mat, i_index);
+        BC_sweep2(Ay, By, Cy, Dy);
+        /*test*/
+        // for (int index = 0; index < j_max+1; index++) {
+        //     printf("%g\n", Bx2[index]);
+        // }
+        /*test*/
+        success = tridiag(Ay, By, Cy, Dy, temp_row, 0, j_max);
         if (success == 1) {
             printf("2\n");
             break;
         }
-        copy_col_to_mat(Cy_vals_mat, temp_row2, i_index);
+        copy_col_to_mat(Cy_vals_mat, temp_row, i_index);
     }
     if (success == 1) {
         return 1;
     }
-    
-    // free(Ax2);
-        printf("helo\n");
-    free(Bx2);
-    free(Cx2);
-    free(Dx2);
-    free(Ay2);
-    free(By2);
-    free(Cy2);
-    free(Dy2);
-    free(temp_row2);
-        printf("here\n");
 
     return 0;
 }
@@ -1182,4 +1142,15 @@ int step(double *Cx_vals_mat, double *Cy_vals_mat, double *fx_vals_mat,
     }
     
     return 0;
+}
+
+void mat_print_to_file(FILE *fp, double *data)
+{
+    int j_index, i_index;
+    for (j_index = 0; j_index < j_max+1; j_index++) {
+        for (i_index = 0; i_index < i_max+1; i_index++) {
+            fprintf(fp, "%g ", data[offset2d(i_index, j_index, i_max+1)]);
+        }
+        fprintf(fp, "\n");
+    }
 }
