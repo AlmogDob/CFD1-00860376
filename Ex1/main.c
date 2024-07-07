@@ -1,10 +1,11 @@
 #include <stdio.h>
-#define MATRIX_IMPLEMENTATION
-#include "Matrix_Double.h"  /* I included this library for debuging */
+// #define MATRIX_IMPLEMENTATION
+// #include "Matrix_Double.h"  /* I included this library for debuging */
 #include <string.h>
 #include <errno.h>
 #include <math.h>
 #include <assert.h>
+#include <stdlib.h>
 
 #define MAXDIR 100
 #define MAXWORD 100
@@ -321,11 +322,11 @@ int main(int argc, char const *argv[])
                        beta_vals_mat, gama_vals_mat, psi_vals_mat,
                        Ax, Ax2, Bx, Bx2, Cx, Cx2, Dx, Dx2, Ay, Ay2, By, By2,
                        Cy, Cy2, Dy, Dy2, temp_row, temp_row2);
-        printf("here\n");
         if (success == 1) {
             fprintf(stderr, "ERROR: Step - sweep 1\n");
             exit(1);
         }
+        printf("here\n");
         if (success == 2) {
             fprintf(stderr, "ERROR: Step - sweep 2\n");
             exit(2);
@@ -337,15 +338,26 @@ int main(int argc, char const *argv[])
 
     /*------------------------------------------------------------*/
 
-    // Mat mat = mat_alloc(5, 5);
-    // mat_fill(mat, 1);
-    // MAT_PRINT(mat);
-    
+    for (j_index = -1; j_index < j_max+1; j_index++) {
+        for (i_index = -1; i_index < i_max+1; i_index++) {
+            // printf("%g ", x_vals_mat_current[offset2d(i_index, j_index, i_max+1)]);
+        }
+        printf("\n");
+    }
 
     FILE *fp;
 
+    double temp;
+
     fp = fopen("x_mat_current.txt", "wt");
-    mat_print_to_file(fp, x_vals_mat_next);
+    for (j_index = -1; j_index < j_max+1; j_index++) {
+        for (i_index = -1; i_index < i_max+1; i_index++) {
+            // temp = x_vals_mat_current[offset2d(i_index, j_index, i_max+1)];
+            // dprintD(temp);
+            // fprintf(fp, "%g ", temp);
+        }
+        // fprintf(fp, "\n");
+    }
     fclose(fp);
 
 
@@ -942,7 +954,7 @@ int sweep2(double *Cx_vals_mat, double *Cy_vals_mat, double *fx_vals_mat,
             printf("2\n");
             break;
         }
-        copy_col_to_mat(Cy_vals_mat, temp_row2, i_index);
+    copy_col_to_mat(Cy_vals_mat, temp_row2, i_index);
     }
     if (success == 1) {
         return 1;
