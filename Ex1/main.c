@@ -1,6 +1,4 @@
 #include <stdio.h>
-// #define MATRIX_IMPLEMENTATION
-// #include "Matrix_Double.h"  /* I included this library for debuging */
 #include <string.h>
 #include <errno.h>
 #include <math.h>
@@ -69,6 +67,7 @@ int step(double *Cx_vals_mat, double *Cy_vals_mat, double *fx_vals_mat,
          double *gama_vals_mat, double *psi_vals_mat,
          double *A, double *B, double *C, double *D, double *temp_row);
 void mat_print_to_file(FILE *fp, double *data);
+void mat_print(double *data);
 
 /* Input variables */
 double t, delta_x, delta_y, XSF, YSF, x_int = 1, r, omega;
@@ -242,13 +241,17 @@ int main(int argc, char const *argv[])
     
     /*------------------------------------------------------------*/
     
-    initialize(x_vals_mat_current, y_vals_mat_current, alpha_vals_mat, beta_vals_mat, gama_vals_mat,
+    initialize(x_vals_mat_init, y_vals_mat_init, alpha_vals_mat, beta_vals_mat, gama_vals_mat,
                psi_vals_mat, phi_vals_mat);
+    
+    mat_print(psi_vals_mat);
 
-    // copy_mat(x_vals_mat_current, x_vals_mat_init);
-    // copy_mat(x_vals_mat_next, x_vals_mat_init);
-    // copy_mat(y_vals_mat_current, y_vals_mat_init);
-    // copy_mat(y_vals_mat_next, y_vals_mat_init);
+    copy_mat(x_vals_mat_current, x_vals_mat_init);
+    copy_mat(x_vals_mat_next, x_vals_mat_init);
+    copy_mat(y_vals_mat_current, y_vals_mat_init);
+    copy_mat(y_vals_mat_next, y_vals_mat_init);
+
+    // mat_print(x_vals_mat_current);
 
     for (i_index = 0; i_index < 1; i_index++) {
         success = step(Cx_vals_mat, Cy_vals_mat, fx_vals_mat, fy_vals_mat,
@@ -265,14 +268,14 @@ int main(int argc, char const *argv[])
             exit(2);
         }
 
-        // output_solution("x_mat_current.txt", x_vals_mat_current);
-        // output_solution("y_mat_current.txt", x_vals_mat_current);
-        // output_solution("x_mat_next.txt", x_vals_mat_next);
-        // output_solution("y_mat_next.txt", x_vals_mat_next);
-
         copy_mat(x_vals_mat_current, x_vals_mat_next);
         copy_mat(y_vals_mat_current, y_vals_mat_next);
     }
+
+    output_solution("x_mat_init.txt", x_vals_mat_init);
+    output_solution("y_mat_init.txt", y_vals_mat_init);
+    output_solution("x_mat_next.txt", x_vals_mat_next);
+    output_solution("y_mat_next.txt", y_vals_mat_next);
 
     /*------------------------------------------------------------*/
 
@@ -621,6 +624,10 @@ void psi_phi(double *psi_vals_mat, double *phi_vals_mat, double *x_vals_mat, dou
     double Dx_Deta_min, Dy_Deta_min, Dx_Dxai_min, Dy_Dxai_min, Dx_Deta_max, Dy_Deta_max, Dx_Dxai_max, Dy_Dxai_max,
     Dx_Deta_Deta_min, Dx_Deta_Deta_max, Dy_Deta_Deta_min, Dy_Deta_Deta_max, Dx_Dxai_Dxai_min, Dx_Dxai_Dxai_max,
     Dy_Dxai_Dxai_min, Dy_Dxai_Dxai_max;
+
+    /*test*/
+    dprintD(second_deriv(x_vals_mat, 'j', i_min, j = 1));
+    /*test*/
 
     /* eq 4 */
     for (j = 0; j < j_max+1; j++) {
@@ -1138,5 +1145,16 @@ void mat_print_to_file(FILE *fp, double *data)
             fprintf(fp, "%g ", data[offset2d(i_index, j_index, i_max+1)]);
         }
         fprintf(fp, "\n");
+    }
+}
+
+void mat_print(double *data)
+{
+    int j_index, i_index;
+    for (j_index = 0; j_index < j_max+1; j_index++) {
+        for (i_index = 0; i_index < i_max+1; i_index++) {
+            printf("%g ", data[offset2d(i_index, j_index, i_max+1)]);
+        }
+        printf("\n");
     }
 }
