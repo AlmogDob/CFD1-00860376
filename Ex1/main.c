@@ -402,20 +402,19 @@ void initialize(double *x_vals_mat, double *y_vals_mat, double *alpha_vals_mat,
 }
 
 /* set the mash boundaries coorditates 
-argument list:
-x_vals_mat - 1D array of the x valsuse 
-y_vals_mat - 1D array of the y valsuse */
+argument list: x_vals_mat - 1D array of the x valuse 
+y_vals_mat - 1D array of the y valuse */
 void set_grid_boundaries(double *x_vals_mat, double *y_vals_mat)
 {
     int i_index, i_min = 0, j_index, j_min = 0, index = 0, num_points_befor_circle,
     num_of_outer_segments, num_of_top_outer_segments;
 
     double x, x_i_minos_2, x_i_minos_1, y_j_minos_2, y_j_minos_1, y_imax_jmax, x_imax_jmax,
-    delta_theta, R, theta = 0, length_top_outer, segment_length, current_x_vals = 0;
+    delta_theta, R, theta = 0, length_top_outer, segment_length, current_x_val = 0;
 
     /* setting the boundary according to the exercie */
     /* Eq 6 */
-    for (i_index = i_TEL, j_index = j_min; i_index < i_LE+1; i_index++) { 
+    for (i_index = i_TEL, j_index = j_min; i_index < i_TEU+1; i_index++) { 
         x = 1 - cos(0.5*PI*(i_LE-i_index)*delta_x);
         x_vals_mat[offset2d(i_index, j_index, i_max+1)] = x;
         if (i_index < i_LE) {
@@ -428,10 +427,6 @@ void set_grid_boundaries(double *x_vals_mat, double *y_vals_mat)
     for (i_index = i_TEU + 1, j_index = j_min; i_index < i_max+1; i_index++) {
         x_i_minos_1 = x_vals_mat[offset2d(i_index-1, j_index, i_max+1)];  
         x_i_minos_2 = x_vals_mat[offset2d(i_index-2, j_index, i_max+1)];  
-        /*test*/
-        dprintD(x_i_minos_1);
-        dprintD(x_i_minos_2);
-        /*test*/
         x_vals_mat[offset2d(i_index, j_index, i_max+1)] = x_i_minos_1 + (x_i_minos_1 - x_i_minos_2) * XSF;
     }
     for (i_index = i_min, j_index = j_min; i_index < i_TEL; i_index++) {
@@ -444,9 +439,6 @@ void set_grid_boundaries(double *x_vals_mat, double *y_vals_mat)
         y_j_minos_2 = y_vals_mat[offset2d(i_index, j_index-2, i_max+1)];  
         y_vals_mat[offset2d(i_max, j_index, i_max+1)] = y_j_minos_1 + (y_j_minos_1 - y_j_minos_2) * YSF;
     }
-    /*test*/
-    dprintD(x_vals_mat[offset2d(i_max, j_min, i_max+1)]);
-    /*test*/
     for (i_index = i_max, j_index = j_min+1; j_index < j_max+1; j_index++) {
         x_vals_mat[offset2d(i_max, j_index, i_max+1)] = x_vals_mat[offset2d(i_max, j_min, i_max+1)];
         y_vals_mat[offset2d(i_min, j_index, i_max+1)] = -y_vals_mat[offset2d(i_max, j_index, i_max+1)];
@@ -456,36 +448,28 @@ void set_grid_boundaries(double *x_vals_mat, double *y_vals_mat)
     y_imax_jmax = y_vals_mat[offset2d(i_max, j_max, i_max+1)];
     x_imax_jmax = x_vals_mat[offset2d(i_max, j_max, i_max+1)];
     R = y_imax_jmax;
+    /*test*/
+    dprintD(x_imax_jmax);
+    /*test*/
 
     num_of_outer_segments = i_max;
     num_of_top_outer_segments = num_of_outer_segments/2;
     length_top_outer = x_imax_jmax + 0.5*PI*R; /* length of stright part and quarter of the circle */
     segment_length = length_top_outer/num_of_top_outer_segments;
-    /*test*/
-    dprintINT(num_of_top_outer_segments);
-    /*test*/
 
     /* the stright line part */
     for (num_points_befor_circle = 0;
          num_points_befor_circle < num_of_top_outer_segments + 1;
          num_points_befor_circle++) {
-            current_x_vals = x_imax_jmax - num_points_befor_circle*segment_length; 
-            /*test*/
-            dprintD(current_x_vals);
-            dprintD(x_imax_jmax);
-            /*test*/
-            
-            if (current_x_vals < 0) {
+            current_x_val = x_imax_jmax - num_points_befor_circle*segment_length; 
+            if (current_x_val < 0) {
                 break;
             }
-            x_vals_mat[offset2d(i_max-num_points_befor_circle, j_max, i_max+1)] = current_x_vals;
+            x_vals_mat[offset2d(i_max-num_points_befor_circle, j_max, i_max+1)] = current_x_val;
             y_vals_mat[offset2d(i_max-num_points_befor_circle, j_max, i_max+1)] = y_imax_jmax;
     }
 
     theta = PI/2 + atan(x_vals_mat[offset2d(i_max-num_points_befor_circle+1, j_max, i_max+1)] / R);
-    /*test*/
-    dprintINT(num_points_befor_circle);
-    /*test*/
     delta_theta = theta / (num_of_top_outer_segments - num_points_befor_circle + 1);
 
     /* the quarter circle part */
@@ -502,8 +486,7 @@ void set_grid_boundaries(double *x_vals_mat, double *y_vals_mat)
 }
 
 /* returns the shape of the airfoil as a function of x
-argument list:
-x - x positon 
+argument list: x - x positon 
 side - the uppers side are the low side of the airfoil */
 double airfoil(double x, char side)
 {
