@@ -148,79 +148,79 @@ int main(int argc, char const *argv[])
     x_vals_mat_current = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
     for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the matrix with zeros */
         for (j_index = 0; j_index < j_max+1; j_index++) {
-            x_vals_mat_current[offset2d(i_index, j_index, i_max)] = 0;
+            x_vals_mat_current[offset2d(i_index, j_index, i_max+1)] = 0;
         }
     }
     y_vals_mat_current = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
     for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the matrix with zeros */
         for (j_index = 0; j_index < j_max+1; j_index++) {
-            y_vals_mat_current[offset2d(i_index, j_index, i_max)] = 0;
+            y_vals_mat_current[offset2d(i_index, j_index, i_max+1)] = 0;
         }
     }
     x_vals_mat_next = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
     for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the matrix with zeros */
         for (j_index = 0; j_index < j_max+1; j_index++) {
-            x_vals_mat_next[offset2d(i_index, j_index, i_max)] = 0;
+            x_vals_mat_next[offset2d(i_index, j_index, i_max+1)] = 0;
         }
     }
     y_vals_mat_next = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
     for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the matrix with zeros */
         for (j_index = 0; j_index < j_max+1; j_index++) {
-            y_vals_mat_next[offset2d(i_index, j_index, i_max)] = 0;
+            y_vals_mat_next[offset2d(i_index, j_index, i_max+1)] = 0;
         }
     }
     alpha_vals_mat = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
     for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the matrix with zeros */
         for (j_index = 0; j_index < j_max+1; j_index++) {
-            alpha_vals_mat[offset2d(i_index, j_index, i_max)] = 0;
+            alpha_vals_mat[offset2d(i_index, j_index, i_max+1)] = 0;
         }
     }
     beta_vals_mat = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
     for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the matrix with zeros */
         for (j_index = 0; j_index < j_max+1; j_index++) {
-            beta_vals_mat[offset2d(i_index, j_index, i_max)] = 0;
+            beta_vals_mat[offset2d(i_index, j_index, i_max+1)] = 0;
         }
     }
     gama_vals_mat = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
     for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the matrix with zeros */
         for (j_index = 0; j_index < j_max+1; j_index++) {
-            gama_vals_mat[offset2d(i_index, j_index, i_max)] = 0;
+            gama_vals_mat[offset2d(i_index, j_index, i_max+1)] = 0;
         }
     }
     psi_vals_mat = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
     for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the matrix with zeros */
         for (j_index = 0; j_index < j_max+1; j_index++) {
-            psi_vals_mat[offset2d(i_index, j_index, i_max)] = 0;
+            psi_vals_mat[offset2d(i_index, j_index, i_max+1)] = 0;
         }
     }
     phi_vals_mat = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
     for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the matrix with zeros */
         for (j_index = 0; j_index < j_max+1; j_index++) {
-            phi_vals_mat[offset2d(i_index, j_index, i_max)] = 0;
+            phi_vals_mat[offset2d(i_index, j_index, i_max+1)] = 0;
         }
     }
     fx_vals_mat = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
     for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the matrix with zeros */
         for (j_index = 0; j_index < j_max+1; j_index++) {
-            fx_vals_mat[offset2d(i_index, j_index, i_max)] = 0;
+            fx_vals_mat[offset2d(i_index, j_index, i_max+1)] = 0;
         }
     }
     fy_vals_mat = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
     for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the matrix with zeros */
         for (j_index = 0; j_index < j_max+1; j_index++) {
-            fy_vals_mat[offset2d(i_index, j_index, i_max)] = 0;
+            fy_vals_mat[offset2d(i_index, j_index, i_max+1)] = 0;
         }
     }
     Cx_vals_mat = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
     for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the matrix with zeros */
         for (j_index = 0; j_index < j_max+1; j_index++) {
-            Cx_vals_mat[offset2d(i_index, j_index, i_max)] = 0;
+            Cx_vals_mat[offset2d(i_index, j_index, i_max+1)] = 0;
         }
     }
     Cy_vals_mat = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
     for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the matrix with zeros */
         for (j_index = 0; j_index < j_max+1; j_index++) {
-            Cy_vals_mat[offset2d(i_index, j_index, i_max)] = 0;
+            Cy_vals_mat[offset2d(i_index, j_index, i_max+1)] = 0;
         }
     }
 
@@ -283,24 +283,24 @@ int main(int argc, char const *argv[])
         // printf("\n");
     }
 
-    FILE *fp1;
+    FILE *fp;
     double temp;
 
-    fp1 = fopen("x_mat_current.txt", "w");
-    if (fp1 == NULL) {
+    fp = fopen("x_mat_current.txt", "wt");
+    if (fp == NULL) {
         printf("Error\n");
         return 1;
     }
     for (j_index = 0; j_index < j_max+1; j_index++) {
         for (i_index = 0; i_index < i_max+1; i_index++) {
-            temp = x_vals_mat_current[offset2d(i_index, j_index, i_max)];
+            temp = x_vals_mat_current[offset2d(i_index, j_index, i_max+1)];
             // dprintD(temp);
         printf("here\n");
-            fprintf(fp1, "1 ", temp);
+            fprintf(fp, "1 ", temp);
         }
         printf("\n");
     }
-    fclose(fp1);
+    fclose(fp);
 
     return 0;
 }
@@ -415,71 +415,89 @@ void set_grid_boundaries(double *x_vals_mat, double *y_vals_mat)
 
     /* setting the boundary according to the exercie */
     /* Eq 6 */
-    for (i_index = i_TEL, j_index = j_min; i_index < i_TEU+1; i_index++) { 
+    for (i_index = i_TEL, j_index = j_min; i_index < i_LE+1; i_index++) { 
         x = 1 - cos(0.5*PI*(i_LE-i_index)*delta_x);
-        x_vals_mat[offset2d(i_index, j_index, i_max)] = x;
+        x_vals_mat[offset2d(i_index, j_index, i_max+1)] = x;
         if (i_index < i_LE) {
-            y_vals_mat[offset2d(i_index, j_index, i_max)] = airfoil(x, 'l');
+            y_vals_mat[offset2d(i_index, j_index, i_max+1)] = airfoil(x, 'l');
         } else if (i_index >= i_LE) {
-            y_vals_mat[offset2d(i_index, j_index, i_max)] = airfoil(x, 'u');
+            y_vals_mat[offset2d(i_index, j_index, i_max+1)] = airfoil(x, 'u');
         }
     }
     /* Eq 7 */
     for (i_index = i_TEU + 1, j_index = j_min; i_index < i_max+1; i_index++) {
-        x_i_minos_1 = x_vals_mat[offset2d(i_index-1, j_index, i_max)];  
-        x_i_minos_2 = x_vals_mat[offset2d(i_index-2, j_index, i_max)];  
-        x_vals_mat[offset2d(i_index, j_index, i_max)] = x_i_minos_1 + (x_i_minos_1 - x_i_minos_2) * XSF;
+        x_i_minos_1 = x_vals_mat[offset2d(i_index-1, j_index, i_max+1)];  
+        x_i_minos_2 = x_vals_mat[offset2d(i_index-2, j_index, i_max+1)];  
+        /*test*/
+        dprintD(x_i_minos_1);
+        dprintD(x_i_minos_2);
+        /*test*/
+        x_vals_mat[offset2d(i_index, j_index, i_max+1)] = x_i_minos_1 + (x_i_minos_1 - x_i_minos_2) * XSF;
     }
     for (i_index = i_min, j_index = j_min; i_index < i_TEL; i_index++) {
-        x_vals_mat[offset2d(i_index, j_index, i_max)] = x_vals_mat[offset2d(i_max-i_index, j_index, i_max)];
+        x_vals_mat[offset2d(i_index, j_index, i_max+1)] = x_vals_mat[offset2d(i_max-i_index, j_index, i_max+1)];
     }
     /* Eq 8 */
-    y_vals_mat[offset2d(i_max, j_min+1, i_max)] = delta_y;
+    y_vals_mat[offset2d(i_max, j_min+1, i_max+1)] = delta_y;
     for (i_index = i_max, j_index = j_min+2; j_index < j_max+1; j_index++) {
-        y_j_minos_1 = y_vals_mat[offset2d(i_index, j_index-1, i_max)];  
-        y_j_minos_2 = y_vals_mat[offset2d(i_index, j_index-2, i_max)];  
-        y_vals_mat[offset2d(i_max, j_index, i_max)] = y_j_minos_1 + (y_j_minos_1 - y_j_minos_2) * YSF;
+        y_j_minos_1 = y_vals_mat[offset2d(i_index, j_index-1, i_max+1)];  
+        y_j_minos_2 = y_vals_mat[offset2d(i_index, j_index-2, i_max+1)];  
+        y_vals_mat[offset2d(i_max, j_index, i_max+1)] = y_j_minos_1 + (y_j_minos_1 - y_j_minos_2) * YSF;
     }
+    /*test*/
+    dprintD(x_vals_mat[offset2d(i_max, j_min, i_max+1)]);
+    /*test*/
     for (i_index = i_max, j_index = j_min+1; j_index < j_max+1; j_index++) {
-        x_vals_mat[offset2d(i_max, j_index, i_max)] = x_vals_mat[offset2d(i_max, i_min, i_max)];
-        y_vals_mat[offset2d(i_min, j_index, i_max)] = -y_vals_mat[offset2d(i_max, j_index, i_max)];
-        x_vals_mat[offset2d(i_min, j_index, i_max)] = x_vals_mat[offset2d(i_min, j_min, i_max)];
+        x_vals_mat[offset2d(i_max, j_index, i_max+1)] = x_vals_mat[offset2d(i_max, j_min, i_max+1)];
+        y_vals_mat[offset2d(i_min, j_index, i_max+1)] = -y_vals_mat[offset2d(i_max, j_index, i_max+1)];
+        x_vals_mat[offset2d(i_min, j_index, i_max+1)] = x_vals_mat[offset2d(i_min, j_min, i_max+1)];
     }
     /* Outer boundary */
-    y_imax_jmax = y_vals_mat[offset2d(i_max, j_max, i_max)];
-    x_imax_jmax = x_vals_mat[offset2d(i_max, j_max, i_max)];
+    y_imax_jmax = y_vals_mat[offset2d(i_max, j_max, i_max+1)];
+    x_imax_jmax = x_vals_mat[offset2d(i_max, j_max, i_max+1)];
     R = y_imax_jmax;
 
     num_of_outer_segments = i_max;
     num_of_top_outer_segments = num_of_outer_segments/2;
     length_top_outer = x_imax_jmax + 0.5*PI*R; /* length of stright part and quarter of the circle */
     segment_length = length_top_outer/num_of_top_outer_segments;
+    /*test*/
+    dprintINT(num_of_top_outer_segments);
+    /*test*/
 
     /* the stright line part */
     for (num_points_befor_circle = 0;
          num_points_befor_circle < num_of_top_outer_segments + 1;
          num_points_befor_circle++) {
             current_x_vals = x_imax_jmax - num_points_befor_circle*segment_length; 
+            /*test*/
+            dprintD(current_x_vals);
+            dprintD(x_imax_jmax);
+            /*test*/
+            
             if (current_x_vals < 0) {
                 break;
             }
-            x_vals_mat[offset2d(i_max-num_points_befor_circle, j_max, i_max)] = current_x_vals;
-            y_vals_mat[offset2d(i_max-num_points_befor_circle, j_max, i_max)] = y_imax_jmax;
+            x_vals_mat[offset2d(i_max-num_points_befor_circle, j_max, i_max+1)] = current_x_vals;
+            y_vals_mat[offset2d(i_max-num_points_befor_circle, j_max, i_max+1)] = y_imax_jmax;
     }
 
-    theta = PI/2 + atan(x_vals_mat[offset2d(i_max-num_points_befor_circle+1, j_max, i_max)] / R);
+    theta = PI/2 + atan(x_vals_mat[offset2d(i_max-num_points_befor_circle+1, j_max, i_max+1)] / R);
+    /*test*/
+    dprintINT(num_points_befor_circle);
+    /*test*/
     delta_theta = theta / (num_of_top_outer_segments - num_points_befor_circle + 1);
 
     /* the quarter circle part */
     for (index = 0; index < num_of_top_outer_segments - num_points_befor_circle + 1; index++) {
-        x_vals_mat[offset2d(i_max/2 + index, j_max, i_max)] = -R*cos(delta_theta*index);
-        y_vals_mat[offset2d(i_max/2 + index, j_max, i_max)] = R*sin(delta_theta*index);
+        x_vals_mat[offset2d(i_max/2 + index, j_max, i_max+1)] = -R*cos(delta_theta*index);
+        y_vals_mat[offset2d(i_max/2 + index, j_max, i_max+1)] = R*sin(delta_theta*index);
     }
 
     /* coping to the bottom side */
     for (index = 1; index < i_max/2 + 1; index++) {
-        x_vals_mat[offset2d(i_max/2 - index, j_max, i_max)] = x_vals_mat[offset2d(i_max/2 + index, j_max, i_max+1)];
-        y_vals_mat[offset2d(i_max/2 - index, j_max, i_max)] = -y_vals_mat[offset2d(i_max/2 + index, j_max, i_max+1)];
+        x_vals_mat[offset2d(i_max/2 - index, j_max, i_max+1)] = x_vals_mat[offset2d(i_max/2 + index, j_max, i_max+1)];
+        y_vals_mat[offset2d(i_max/2 - index, j_max, i_max+1)] = -y_vals_mat[offset2d(i_max/2 + index, j_max, i_max+1)];
     }
 }
 
@@ -516,18 +534,18 @@ void interpulat_mat(double *mat, char diraction)
     if (diraction == 'j') {
         for (i = 1; i < i_max; i++) {
             for (j = 1; j < j_max; j++) {
-                max = mat[offset2d(i, j_max, i_max)];
-                min = mat[offset2d(i, j_min, i_max)];
-                mat[offset2d(i, j, i_max)] = (max - min)/(j_max) * j + min;   /* liniar interpulation */
+                max = mat[offset2d(i, j_max, i_max+1)];
+                min = mat[offset2d(i, j_min, i_max+1)];
+                mat[offset2d(i, j, i_max+1)] = (max - min)/(j_max) * j + min;   /* liniar interpulation */
             }
         }
     }
     if (diraction == 'i') {
         for (j = 1; j < j_max; j++) {
             for (i = 1; i < i_max; i++) {
-                max = mat[offset2d(i_max, j, i_max)];
-                min = mat[offset2d(i_min, j, i_max)];
-                mat[offset2d(i, j, i_max)] = (max - min)/(i_max) * i + min;   /* liniar interpulation */
+                max = mat[offset2d(i_max, j, i_max+1)];
+                min = mat[offset2d(i_min, j, i_max+1)];
+                mat[offset2d(i, j, i_max+1)] = (max - min)/(i_max) * i + min;   /* liniar interpulation */
             }
         }
     }
@@ -544,13 +562,13 @@ double first_deriv(double *mat, char diraction, int i, int j)
         if (j == j_min || j == j_max) {
             return 0;
         }
-        return (mat[offset2d(i, j+1, i_max)] - mat[offset2d(i, j-1, i_max)]) / (2); /* second order first derivitive */
+        return (mat[offset2d(i, j+1, i_max+1)] - mat[offset2d(i, j-1, i_max+1)]) / (2); /* second order first derivitive */
     }
     if (diraction == 'i') {
         if (i == i_min || i == i_max) {
             return 0;
         }
-        return (mat[offset2d(i+1, j, i_max)] - mat[offset2d(i-1, j, i_max)]) / (2); /* second order first derivitive */
+        return (mat[offset2d(i+1, j, i_max+1)] - mat[offset2d(i-1, j, i_max+1)]) / (2); /* second order first derivitive */
     }
     return NAN;
 }
@@ -566,13 +584,13 @@ double second_deriv(double *mat, char diraction, int i, int j)
         if (j == j_min || j == j_max) {
             return 0;
         }
-        return (mat[offset2d(i, j+1, i_max)] -2*mat[offset2d(i, j, i_max)] + mat[offset2d(i, j-1, i_max+1)]) / (1); /* second order second derivitive */
+        return (mat[offset2d(i, j+1, i_max+1)] -2*mat[offset2d(i, j, i_max)] + mat[offset2d(i, j-1, i_max+1)]) / (1); /* second order second derivitive */
     }
     if (diraction == 'i') {
         if (i == i_min || i == i_max) {
             return 0;
         }
-        return (mat[offset2d(i+1, j, i_max)] -2*mat[offset2d(i, j, i_max)] + mat[offset2d(i-1, j, i_max)]) / (1); /* second order second derivitive */
+        return (mat[offset2d(i+1, j, i_max+1)] -2*mat[offset2d(i, j, i_max)] + mat[offset2d(i-1, j, i_max+1)]) / (1); /* second order second derivitive */
     }
     return NAN;
 }
@@ -596,9 +614,9 @@ void alpha_beta_gama(double *alpha_vals_mat, double *beta_vals_mat, double *gama
             Dy_Deta = first_deriv(y_vals_mat, 'j', i, j);
             Dx_Dxai = first_deriv(x_vals_mat, 'i', i, j);
             Dy_Dxai = first_deriv(y_vals_mat, 'i', i, j);
-            alpha_vals_mat[offset2d(i, j, i_max)] = Dx_Deta*Dx_Deta + Dy_Deta*Dy_Deta;
-            beta_vals_mat[offset2d(i, j, i_max)] = Dx_Dxai*Dx_Deta + Dy_Dxai*Dy_Deta;
-            gama_vals_mat[offset2d(i, j, i_max)] = Dx_Dxai*Dx_Dxai + Dy_Dxai*Dy_Dxai;
+            alpha_vals_mat[offset2d(i, j, i_max+1)] = Dx_Deta*Dx_Deta + Dy_Deta*Dy_Deta;
+            beta_vals_mat[offset2d(i, j, i_max+1)] = Dx_Dxai*Dx_Deta + Dy_Dxai*Dy_Deta;
+            gama_vals_mat[offset2d(i, j, i_max+1)] = Dx_Dxai*Dx_Dxai + Dy_Dxai*Dy_Dxai;
         }
     }
 }
@@ -630,16 +648,16 @@ void psi_phi(double *psi_vals_mat, double *phi_vals_mat, double *x_vals_mat, dou
         
 
         if (fabs(Dy_Deta_min) > fabs(Dx_Deta_min)) {
-            psi_vals_mat[offset2d(i_min, j, i_max)] = - Dy_Deta_Deta_min / Dy_Deta_min;
+            psi_vals_mat[offset2d(i_min, j, i_max+1)] = - Dy_Deta_Deta_min / Dy_Deta_min;
         }
         if (fabs(Dy_Deta_min) < fabs(Dx_Deta_min)) {
-            psi_vals_mat[offset2d(i_min, j, i_max)] = - Dx_Deta_Deta_min / Dx_Deta_min;
+            psi_vals_mat[offset2d(i_min, j, i_max+1)] = - Dx_Deta_Deta_min / Dx_Deta_min;
         }
         if (fabs(Dy_Deta_max) > fabs(Dx_Deta_max)) {
-            psi_vals_mat[offset2d(i_max, j, i_max)] = - Dy_Deta_Deta_max / Dy_Deta_max;
+            psi_vals_mat[offset2d(i_max, j, i_max+1)] = - Dy_Deta_Deta_max / Dy_Deta_max;
         }
         if (fabs(Dy_Deta_max) < fabs(Dx_Deta_max)) {
-            psi_vals_mat[offset2d(i_max, j, i_max)] = - Dx_Deta_Deta_max / Dx_Deta_max;
+            psi_vals_mat[offset2d(i_max, j, i_max+1)] = - Dx_Deta_Deta_max / Dx_Deta_max;
         }
     }
 
@@ -656,16 +674,16 @@ void psi_phi(double *psi_vals_mat, double *phi_vals_mat, double *x_vals_mat, dou
         
 
         if (fabs(Dx_Dxai_min) > fabs(Dy_Dxai_min)) {
-            phi_vals_mat[offset2d(i, j_min, i_max)] = - Dx_Dxai_Dxai_min / Dx_Dxai_min;
+            phi_vals_mat[offset2d(i, j_min, i_max+1)] = - Dx_Dxai_Dxai_min / Dx_Dxai_min;
         }
         if (fabs(Dx_Dxai_min) < fabs(Dy_Dxai_min)) {
-            phi_vals_mat[offset2d(i, j_min, i_max)] = - Dy_Dxai_Dxai_min / Dy_Dxai_min;
+            phi_vals_mat[offset2d(i, j_min, i_max+1)] = - Dy_Dxai_Dxai_min / Dy_Dxai_min;
         }
         if (fabs(Dx_Dxai_max) > fabs(Dy_Dxai_max)) {
-            phi_vals_mat[offset2d(i, j_max, i_max)] = - Dx_Dxai_Dxai_max / Dx_Dxai_max;
+            phi_vals_mat[offset2d(i, j_max, i_max+1)] = - Dx_Dxai_Dxai_max / Dx_Dxai_max;
         }
         if (fabs(Dx_Dxai_max) < fabs(Dy_Dxai_max)) {
-            phi_vals_mat[offset2d(i, j_max, i_max)] = - Dy_Dxai_Dxai_max / Dy_Dxai_max;
+            phi_vals_mat[offset2d(i, j_max, i_max+1)] = - Dy_Dxai_Dxai_max / Dy_Dxai_max;
         }
     }
 
@@ -683,7 +701,7 @@ void copy_mat(double *dst, double *src)
     
     for (i = 0; i < i_max+1; i++) {
         for (j = 0; j < j_max+1; j++) {
-            dst[offset2d(i, j, i_max)] = src[offset2d(i, j, i_max)];
+            dst[offset2d(i, j, i_max+1)] = src[offset2d(i, j, i_max+1)];
         }
     }
 }
@@ -694,7 +712,7 @@ void copy_row_to_mat(double *dst, double *src, int row_num)
     int i;
     
     for (i = 0; i < i_max+1; i++) {
-        dst[offset2d(i, row_num, i_max)] = src[i];
+        dst[offset2d(i, row_num, i_max+1)] = src[i];
     }
 }
 
@@ -703,7 +721,7 @@ void copy_col_to_mat(double *dst, double *src, int col_num)
     int j;
     
     for (j = 0; j < i_max+1; j++) {
-        dst[offset2d(col_num, j, i_max)] = src[j];
+        dst[offset2d(col_num, j, i_max+1)] = src[j];
     }
 }
 
@@ -728,26 +746,26 @@ double L_x(double *x_vals_mat, double *alpha_vals_mat,
         return 0;
     }
 
-    x_i_plus1_j = x_vals_mat[offset2d(i+1, j, i_max)];
-    x_i_j = x_vals_mat[offset2d(i, j, i_max)];
-    x_i_minus1_j = x_vals_mat[offset2d(i-1, j, i_max)];
-    x_i_plus1_j_plus1 = x_vals_mat[offset2d(i+1,j+1, i_max)];
-    x_i_plus1_j_minus1 = x_vals_mat[offset2d(i+1, j-1, i_max)];
-    x_i_minus1_j_plus1 = x_vals_mat[offset2d(i-1, j+1, i_max)];
-    x_i_minus1_j_minus1 = x_vals_mat[offset2d(i-1, j-1, i_max)];
-    x_i_j_plus1 = x_vals_mat[offset2d(i, j+1, i_max)];
-    x_i_j_minus1 = x_vals_mat[offset2d(i, j-1, i_max)];
+    x_i_plus1_j = x_vals_mat[offset2d(i+1, j, i_max+1)];
+    x_i_j = x_vals_mat[offset2d(i, j, i_max+1)];
+    x_i_minus1_j = x_vals_mat[offset2d(i-1, j, i_max+1)];
+    x_i_plus1_j_plus1 = x_vals_mat[offset2d(i+1,j+1, i_max+1)];
+    x_i_plus1_j_minus1 = x_vals_mat[offset2d(i+1, j-1, i_max+1)];
+    x_i_minus1_j_plus1 = x_vals_mat[offset2d(i-1, j+1, i_max+1)];
+    x_i_minus1_j_minus1 = x_vals_mat[offset2d(i-1, j-1, i_max+1)];
+    x_i_j_plus1 = x_vals_mat[offset2d(i, j+1, i_max+1)];
+    x_i_j_minus1 = x_vals_mat[offset2d(i, j-1, i_max+1)];
 
-    first_element = alpha_vals_mat[offset2d(i, j, i_max)] *
+    first_element = alpha_vals_mat[offset2d(i, j, i_max+1)] *
                     ((x_i_plus1_j - 2 * x_i_j + x_i_minus1_j) +
-                    0.5 * phi_vals_mat[offset2d(i, j, i_max)] *
+                    0.5 * phi_vals_mat[offset2d(i, j, i_max+1)] *
                     (x_i_plus1_j - x_i_minus1_j));
-    second_element = 0.5 * beta_vals_mat[offset2d(i, j, i_max)] *
+    second_element = 0.5 * beta_vals_mat[offset2d(i, j, i_max+1)] *
                      (x_i_plus1_j_plus1 - x_i_plus1_j_minus1 -
                      x_i_minus1_j_plus1 + x_i_minus1_j_minus1);
-    third_element = gama_vals_mat[offset2d(i, j, i_max)] *
+    third_element = gama_vals_mat[offset2d(i, j, i_max+1)] *
                     ((x_i_j_plus1 - 2 * x_i_j + x_i_j_minus1) +
-                    0.5 * psi_vals_mat[offset2d(i, j, i_max)] *
+                    0.5 * psi_vals_mat[offset2d(i, j, i_max+1)] *
                     (x_i_j_plus1 - x_i_j_minus1));
 
     return first_element - second_element + third_element;
@@ -775,26 +793,26 @@ double L_y(double *y_vals_mat, double *alpha_vals_mat,
         return 0;
     }
 
-    y_i_plus1_j = y_vals_mat[offset2d(i+1, j, i_max)];
-    y_i_j = y_vals_mat[offset2d(i, j, i_max)];
-    y_i_minus1_j = y_vals_mat[offset2d(i-1, j, i_max)];
-    y_i_plus1_j_plus1 = y_vals_mat[offset2d(i+1,j+1, i_max)];
-    y_i_plus1_j_minus1 = y_vals_mat[offset2d(i+1, j-1, i_max)];
-    y_i_minus1_j_plus1 = y_vals_mat[offset2d(i-1, j+1, i_max)];
-    y_i_minus1_j_minus1 = y_vals_mat[offset2d(i-1, j-1, i_max)];
-    y_i_j_plus1 = y_vals_mat[offset2d(i, j+1, i_max)];
-    y_i_j_minus1 = y_vals_mat[offset2d(i, j-1, i_max)];
+    y_i_plus1_j = y_vals_mat[offset2d(i+1, j, i_max+1)];
+    y_i_j = y_vals_mat[offset2d(i, j, i_max+1)];
+    y_i_minus1_j = y_vals_mat[offset2d(i-1, j, i_max+1)];
+    y_i_plus1_j_plus1 = y_vals_mat[offset2d(i+1,j+1, i_max+1)];
+    y_i_plus1_j_minus1 = y_vals_mat[offset2d(i+1, j-1, i_max+1)];
+    y_i_minus1_j_plus1 = y_vals_mat[offset2d(i-1, j+1, i_max+1)];
+    y_i_minus1_j_minus1 = y_vals_mat[offset2d(i-1, j-1, i_max+1)];
+    y_i_j_plus1 = y_vals_mat[offset2d(i, j+1, i_max+1)];
+    y_i_j_minus1 = y_vals_mat[offset2d(i, j-1, i_max+1)];
 
-    first_element = alpha_vals_mat[offset2d(i, j, i_max)] *
+    first_element = alpha_vals_mat[offset2d(i, j, i_max+1)] *
                     ((y_i_plus1_j - 2 * y_i_j + y_i_minus1_j) +
-                    0.5 * phi_vals_mat[offset2d(i, j, i_max)] *
+                    0.5 * phi_vals_mat[offset2d(i, j, i_max+1)] *
                     (y_i_plus1_j - y_i_minus1_j));
-    second_element = 0.5 * beta_vals_mat[offset2d(i, j, i_max)] *
+    second_element = 0.5 * beta_vals_mat[offset2d(i, j, i_max+1)] *
                      (y_i_plus1_j_plus1 - y_i_plus1_j_minus1 -
                      y_i_minus1_j_plus1 + y_i_minus1_j_minus1);
-    third_element = gama_vals_mat[offset2d(i, j, i_max)] *
+    third_element = gama_vals_mat[offset2d(i, j, i_max+1)] *
                     ((y_i_j_plus1 - 2 * y_i_j + y_i_j_minus1) +
-                    0.5 * psi_vals_mat[offset2d(i, j, i_max)] *
+                    0.5 * psi_vals_mat[offset2d(i, j, i_max+1)] *
                     (y_i_j_plus1 - y_i_j_minus1));
 
     return first_element - second_element + third_element;
@@ -914,9 +932,9 @@ void LHS_sweep1(double *A, double *B, double *C, double *alpha_vals_mat, int j)
     int i;
 
     for (i = 0; i < i_max+1; i++) {
-        A[i] = -alpha_vals_mat[offset2d(i, j, i_max)];
-        B[i] = r + 2 * alpha_vals_mat[offset2d(i, j, i_max)];
-        C[i] = -alpha_vals_mat[offset2d(i, j, i_max)];
+        A[i] = -alpha_vals_mat[offset2d(i, j, i_max+1)];
+        B[i] = r + 2 * alpha_vals_mat[offset2d(i, j, i_max+1)];
+        C[i] = -alpha_vals_mat[offset2d(i, j, i_max+1)];
     }
 }
 
@@ -932,9 +950,9 @@ void LHS_sweep2(double *A, double *B, double *C, double *gama_vals_mat, int i)
     int j;
 
     for (j = 0; j < j_max+1; j++) {
-        A[j] = -gama_vals_mat[offset2d(i, j, i_max)];
-        B[j] = r + 2 * gama_vals_mat[offset2d(i, j, i_max)];
-        C[j] = -gama_vals_mat[offset2d(i, j, i_max)];
+        A[j] = -gama_vals_mat[offset2d(i, j, i_max+1)];
+        B[j] = r + 2 * gama_vals_mat[offset2d(i, j, i_max+1)];
+        C[j] = -gama_vals_mat[offset2d(i, j, i_max+1)];
     }
 }
 
@@ -971,7 +989,7 @@ void RHS_sweep2_x(double *D,double *fx_vals_mat, int i)
     int j;
     
     for (j = 0; j < j_max+1; j++) {
-        D[j] = fx_vals_mat[offset2d(i, j, i_max)];
+        D[j] = fx_vals_mat[offset2d(i, j, i_max+1)];
     }
 }
 
@@ -1008,7 +1026,7 @@ void RHS_sweep2_y(double *D,double *fy_vals_mat, int i)
     int j;
     
     for (j = 0; j < j_max+1; j++) {
-        D[j] = fy_vals_mat[offset2d(i, j, i_max)];
+        D[j] = fy_vals_mat[offset2d(i, j, i_max+1)];
     }
 }
 
@@ -1113,7 +1131,7 @@ int step(double *Cx_vals_mat, double *Cy_vals_mat, double *fx_vals_mat,
 
     for (i = 0; i < i_max+1; i++) {
         for (j = 0; j < j_max+1; j++) {
-            index = offset2d(i, j, i_max);
+            index = offset2d(i, j, i_max+1);
             x_vals_mat_next[index] = Cx_vals_mat[index] + x_vals_mat_current[index];
             y_vals_mat_next[index] = Cy_vals_mat[index] + y_vals_mat_current[index];
         }
