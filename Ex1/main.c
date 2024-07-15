@@ -244,7 +244,7 @@ int main(int argc, char const *argv[])
     initialize(x_vals_mat_init, y_vals_mat_init, alpha_vals_mat, beta_vals_mat, gama_vals_mat,
                psi_vals_mat, phi_vals_mat);
     
-    mat_print(psi_vals_mat);
+    mat_print(phi_vals_mat);
 
     copy_mat(x_vals_mat_current, x_vals_mat_init);
     copy_mat(x_vals_mat_next, x_vals_mat_init);
@@ -253,7 +253,7 @@ int main(int argc, char const *argv[])
 
     // mat_print(x_vals_mat_current);
 
-    for (i_index = 0; i_index < 1; i_index++) {
+    for (i_index = 0; i_index < 100; i_index++) {
         success = step(Cx_vals_mat, Cy_vals_mat, fx_vals_mat, fy_vals_mat,
                        x_vals_mat_current, x_vals_mat_next, y_vals_mat_current,
                        y_vals_mat_next, alpha_vals_mat, phi_vals_mat,
@@ -574,13 +574,13 @@ double second_deriv(double *mat, char diraction, int i, int j)
         if (j == j_min || j == j_max) {
             return 0;
         }
-        return (mat[offset2d(i, j+1, i_max+1)] -2*mat[offset2d(i, j, i_max)] + mat[offset2d(i, j-1, i_max+1)]) / (1); /* second order second derivitive */
+        return (mat[offset2d(i, j+1, i_max+1)] -2*mat[offset2d(i, j, i_max+1)] + mat[offset2d(i, j-1, i_max+1)]) / (1); /* second order second derivitive */
     }
     if (diraction == 'i') {
         if (i == i_min || i == i_max) {
             return 0;
         }
-        return (mat[offset2d(i+1, j, i_max+1)] -2*mat[offset2d(i, j, i_max)] + mat[offset2d(i-1, j, i_max+1)]) / (1); /* second order second derivitive */
+        return (mat[offset2d(i+1, j, i_max+1)] -2*mat[offset2d(i, j, i_max+1)] + mat[offset2d(i-1, j, i_max+1)]) / (1); /* second order second derivitive */
     }
     return NAN;
 }
@@ -626,7 +626,7 @@ void psi_phi(double *psi_vals_mat, double *phi_vals_mat, double *x_vals_mat, dou
     Dy_Dxai_Dxai_min, Dy_Dxai_Dxai_max;
 
     /*test*/
-    dprintD(second_deriv(x_vals_mat, 'j', i_min, j = 1));
+    // dprintD(second_deriv(x_vals_mat, 'j', i_min, j = 1));
     /*test*/
 
     /* eq 4 */
@@ -665,7 +665,6 @@ void psi_phi(double *psi_vals_mat, double *phi_vals_mat, double *x_vals_mat, dou
         Dy_Dxai_Dxai_min = second_deriv(y_vals_mat, 'i', i, j_min);
         Dx_Dxai_Dxai_max = second_deriv(x_vals_mat, 'i', i, j_max);
         Dy_Dxai_Dxai_max = second_deriv(y_vals_mat, 'i', i, j_max);
-        
 
         if (fabs(Dx_Dxai_min) > fabs(Dy_Dxai_min)) {
             phi_vals_mat[offset2d(i, j_min, i_max+1)] = - Dx_Dxai_Dxai_min / Dx_Dxai_min;
@@ -1109,8 +1108,7 @@ int step(double *Cx_vals_mat, double *Cy_vals_mat, double *fx_vals_mat,
 {
     int success, i, j, index; 
 
-    alpha_beta_gama(alpha_vals_mat, beta_vals_mat, gama_vals_mat, x_vals_mat_current, x_vals_mat_current);
-    psi_phi(psi_vals_mat, phi_vals_mat, x_vals_mat_current, x_vals_mat_current);
+    alpha_beta_gama(alpha_vals_mat, beta_vals_mat, gama_vals_mat, x_vals_mat_current, y_vals_mat_current);
 
     success = sweep1(fx_vals_mat, fy_vals_mat, x_vals_mat_current,
            y_vals_mat_current, alpha_vals_mat, phi_vals_mat,
