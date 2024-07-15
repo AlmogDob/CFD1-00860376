@@ -16,7 +16,7 @@
 #define dprintD(expr) printf(#expr " = %g\n", expr)
 
 void read_input(char *dir);
-void output_solution_d(char *dir, double *data);
+void output_solution(char *dir, double *data);
 int offset2d(int i, int j, int ni);
 void initialize(double *x_vals_mat, double *y_vals_mat, double *alpha_vals_mat,
                 double *beta_vals_mat, double *gama_vals_mat,
@@ -78,7 +78,7 @@ int i_max, j_max, i_TEL, i_LE, i_TEU, i_min = 0, j_min = 0;
 int main(int argc, char const *argv[])
 {
     /* decleraitons */
-    char input_dir[MAXDIR], output_dir[MAXDIR];
+    char input_dir[MAXDIR];
     int i_index, j_index, success = 0;
     double *x_vals_mat_init, *y_vals_mat_init, *x_vals_mat_current,
            *y_vals_mat_current, *x_vals_mat_next, *y_vals_mat_next,
@@ -91,20 +91,15 @@ int main(int argc, char const *argv[])
     /*------------------------------------------------------------*/
 
     /* Geting the input and output directories */
-    if (--argc != 2) {
+    if (--argc != 1) {
         fprintf(stderr, "ERROR: not right usage\nUsage: main 'input dir' 'output dir'\n");
         return -1;
     }
 
     strncpy(input_dir, (*(++argv)), MAXDIR);
-    strncpy(output_dir, (*(++argv)), MAXDIR);
 
     if (input_dir[MAXDIR-1] != '\0') {
         fprintf(stderr, "Error: input too long\n");
-        return -1;
-    }
-    if (output_dir[MAXDIR-1] != '\0') {
-        fprintf(stderr, "Error: output too long\n");
         return -1;
     }
 
@@ -133,18 +128,18 @@ int main(int argc, char const *argv[])
     /*------------------------------------------------------------*/
     
     /* Memory allocation */
-    // x_vals_mat_init = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
-    // for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the matrix with zeros */
-    //     for (j_index = 0; j_index < j_max+1; j_index++) {
-    //         x_vals_mat_init[offset2d(i_index, j_index, i_max+1)] = 0;
-    //     }
-    // }
-    // y_vals_mat_init = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
-    // for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the matrix with zeros */
-    //     for (j_index = 0; j_index < j_max+1; j_index++) {
-    //         y_vals_mat_init[offset2d(i_index, j_index, i_max+1)] = 0;
-    //     }
-    // }
+    x_vals_mat_init = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
+    for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the matrix with zeros */
+        for (j_index = 0; j_index < j_max+1; j_index++) {
+            x_vals_mat_init[offset2d(i_index, j_index, i_max+1)] = 0;
+        }
+    }
+    y_vals_mat_init = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
+    for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the matrix with zeros */
+        for (j_index = 0; j_index < j_max+1; j_index++) {
+            y_vals_mat_init[offset2d(i_index, j_index, i_max+1)] = 0;
+        }
+    }
     x_vals_mat_current = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
     for (i_index = 0; i_index < i_max+1; i_index++) {   /* filling the matrix with zeros */
         for (j_index = 0; j_index < j_max+1; j_index++) {
@@ -247,7 +242,7 @@ int main(int argc, char const *argv[])
     
     /*------------------------------------------------------------*/
     
-    initialize(x_vals_mat_current, x_vals_mat_current, alpha_vals_mat, beta_vals_mat, gama_vals_mat,
+    initialize(x_vals_mat_current, y_vals_mat_current, alpha_vals_mat, beta_vals_mat, gama_vals_mat,
                psi_vals_mat, phi_vals_mat);
 
     // copy_mat(x_vals_mat_current, x_vals_mat_init);
@@ -270,37 +265,40 @@ int main(int argc, char const *argv[])
             exit(2);
         }
 
+        // output_solution("x_mat_current.txt", x_vals_mat_current);
+        // output_solution("y_mat_current.txt", x_vals_mat_current);
+        // output_solution("x_mat_next.txt", x_vals_mat_next);
+        // output_solution("y_mat_next.txt", x_vals_mat_next);
+
         copy_mat(x_vals_mat_current, x_vals_mat_next);
         copy_mat(y_vals_mat_current, y_vals_mat_next);
     }
 
     /*------------------------------------------------------------*/
 
-    for (j_index = 0; j_index < j_max+1; j_index++) {
-        for (i_index = 0; i_index < i_max+1; i_index++) {
-            // printf("%g ", x_vals_mat_current[offset2d(i_index, j_index, i_max+1)]);
-        }
-        // printf("\n");
-    }
 
-    FILE *fp;
-    double temp;
 
-    fp = fopen("x_mat_current.txt", "wt");
-    if (fp == NULL) {
-        printf("Error\n");
-        return 1;
-    }
-    for (j_index = 0; j_index < j_max+1; j_index++) {
-        for (i_index = 0; i_index < i_max+1; i_index++) {
-            temp = x_vals_mat_current[offset2d(i_index, j_index, i_max+1)];
-            // dprintD(temp);
-        printf("here\n");
-            fprintf(fp, "1 ", temp);
-        }
-        printf("\n");
-    }
-    fclose(fp);
+
+    free(x_vals_mat_init);
+    free(y_vals_mat_init);
+    free(x_vals_mat_current);
+    free(y_vals_mat_current);
+    free(x_vals_mat_next);
+    free(y_vals_mat_next);
+    free(alpha_vals_mat);
+    free(beta_vals_mat);
+    free(gama_vals_mat);
+    free(psi_vals_mat);
+    free(phi_vals_mat);
+    free(fx_vals_mat);
+    free(fy_vals_mat);
+    free(Cx_vals_mat);
+    free(Cy_vals_mat);
+    free(A);
+    free(B);
+    free(C);
+    free(D);
+    free(temp_row);
 
     return 0;
 }
@@ -360,15 +358,21 @@ void read_input(char *dir)
     fclose(fp);
 }
 
-/* output data; double version
+/* output data;
 argument list:
 dir - the directory of the output file.
 data - the solution vector */
-void output_solution_d(char *dir, double *data)
+void output_solution(char *dir, double *data)
 {
     FILE *fp = fopen(dir, "wt");
+    int i, j;
     
-    data = (void *)data;
+    for (j = 0; j < j_max+1; j++) {
+        for (i = 0; i < i_max+1; i++) {
+            fprintf(fp, "%g ", data[offset2d(i, j, i_max+1)]);
+        }
+        fprintf(fp, "\n");
+    }
 
     fclose(fp);
 }
@@ -449,7 +453,7 @@ void set_grid_boundaries(double *x_vals_mat, double *y_vals_mat)
     x_imax_jmax = x_vals_mat[offset2d(i_max, j_max, i_max+1)];
     R = y_imax_jmax;
     /*test*/
-    dprintD(x_imax_jmax);
+    // dprintD(x_imax_jmax);
     /*test*/
 
     num_of_outer_segments = i_max;
@@ -703,7 +707,7 @@ void copy_col_to_mat(double *dst, double *src, int col_num)
 {
     int j;
     
-    for (j = 0; j < i_max+1; j++) {
+    for (j = 0; j < j_max+1; j++) {
         dst[offset2d(col_num, j, i_max+1)] = src[j];
     }
 }
@@ -1097,6 +1101,9 @@ int step(double *Cx_vals_mat, double *Cy_vals_mat, double *fx_vals_mat,
          double *A, double *B, double *C, double *D, double *temp_row)
 {
     int success, i, j, index; 
+
+    alpha_beta_gama(alpha_vals_mat, beta_vals_mat, gama_vals_mat, x_vals_mat_current, x_vals_mat_current);
+    psi_phi(psi_vals_mat, phi_vals_mat, x_vals_mat_current, x_vals_mat_current);
 
     success = sweep1(fx_vals_mat, fy_vals_mat, x_vals_mat_current,
            y_vals_mat_current, alpha_vals_mat, phi_vals_mat,
