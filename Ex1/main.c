@@ -81,7 +81,7 @@ double calculate_max_L_y(double *y_vals_mat, double *alpha_vals_mat,
            double *gama_vals_mat, double *psi_vals_mat);
 
 /* Input variables */
-double t, delta_x, delta_y, XSF, YSF, x_int = 1, r, omega;
+double t, delta_x, delta_y, XSF, YSF, x_int = 1, r, omega, psi_valuse = NAN, phi_valuse = NAN;
 int i_max, j_max, i_TEL, i_LE, i_TEU, i_min = 0, j_min = 0;
 
 
@@ -98,6 +98,7 @@ int main(int argc, char const *argv[])
     /* matrix diaganosl for different sweeps */
     double *A, *B, *C, *D, *temp_row;
     Vec2 result, first_result;
+    FILE *Ls_fp = fopen("./matrices/Ls_valuse", "wt");
 
     /*------------------------------------------------------------*/
 
@@ -134,6 +135,8 @@ int main(int argc, char const *argv[])
     dprintD(x_int);
     dprintD(r);
     dprintD(omega);
+    dprintD(phi_valuse);
+    dprintD(psi_valuse);
     printf("--------------------\n");
 
     /*------------------------------------------------------------*/
@@ -261,7 +264,7 @@ int main(int argc, char const *argv[])
     copy_mat(y_vals_mat_current, y_vals_mat_init);
     copy_mat(y_vals_mat_next, y_vals_mat_init);
 
-    for (i_index = 0; i_index < 1e5; i_index++) {
+    for (i_index = 0; i_index < 5e5; i_index++) {
         result = step(Cx_vals_mat, Cy_vals_mat, fx_vals_mat, fy_vals_mat,
                        x_vals_mat_current, x_vals_mat_next, y_vals_mat_current,
                        y_vals_mat_next, alpha_vals_mat, phi_vals_mat,
@@ -283,7 +286,8 @@ int main(int argc, char const *argv[])
         copy_mat(y_vals_mat_current, y_vals_mat_next);
         
         /* printing Lx and Ly */
-        printf("%d. Lx_max: %0.7f, Ly_max: %0.7f\n",i_index+1, result.x, result.y);
+        // printf("%4d. Lx_max: %0.10f, Ly_max: %0.10f\n",i_index+1, result.x, result.y);
+        fprintf(Ls_fp, "%g, %g\n", result.x, result.y);
 
         /* checking convergenc */
         if (log10(fabs(first_result.x/result.x)) > 5 && log10(fabs(first_result.y/result.y))) {
@@ -291,17 +295,14 @@ int main(int argc, char const *argv[])
         }
     }
 
-    output_solution("x_mat_init.txt", x_vals_mat_init);
-    output_solution("y_mat_init.txt", y_vals_mat_init);
-    sprintf(temp_word, "x_mat_%d.txt", i_index+1);
+    output_solution("./matrices/x_mat_init.txt", x_vals_mat_init);
+    output_solution("./matrices/y_mat_init.txt", y_vals_mat_init);
+    sprintf(temp_word, "./matrices/x_mat_%d.txt", i_index+1);
     output_solution(temp_word, x_vals_mat_next);
-    sprintf(temp_word, "y_mat_%d.txt", i_index+1);
+    sprintf(temp_word, "./matrices/y_mat_%d.txt", i_index+1);
     output_solution(temp_word, y_vals_mat_next);
 
     /*------------------------------------------------------------*/
-
-
-
 
     free(x_vals_mat_init);
     free(y_vals_mat_init);
@@ -374,6 +375,12 @@ void read_input(char *dir)
         } else if (!strcmp(current_word, "omega")) {
             fscanf(fp, "%g", &temp);
             omega = (double)temp;
+        } else if (!strcmp(current_word, "phi")) {
+            fscanf(fp, "%g", &temp);
+            phi_valuse = (double)temp;
+        } else if (!strcmp(current_word, "psi")) {
+            fscanf(fp, "%g", &temp);
+            psi_valuse = (double)temp;
         }
     }
 
@@ -652,52 +659,61 @@ void psi_phi(double *psi_vals_mat, double *phi_vals_mat, double *x_vals_mat, dou
 
     /* eq 4 */
     for (j = 0; j < j_max+1; j++) {
-        Dx_Deta_min = first_deriv(x_vals_mat, 'j', i_min, j);
-        Dy_Deta_min = first_deriv(y_vals_mat, 'j', i_min, j);
-        Dx_Deta_max = first_deriv(x_vals_mat, 'j', i_max, j);
-        Dy_Deta_max = first_deriv(y_vals_mat, 'j', i_max, j);
-        Dx_Deta_Deta_min = second_deriv(x_vals_mat, 'j', i_min, j);
-        Dy_Deta_Deta_min = second_deriv(y_vals_mat, 'j', i_min, j);
-        Dx_Deta_Deta_max = second_deriv(x_vals_mat, 'j', i_max, j);
-        Dy_Deta_Deta_max = second_deriv(y_vals_mat, 'j', i_max, j);
-        
+        if (psi_valuse == -1) {
+            Dx_Deta_min = first_deriv(x_vals_mat, 'j', i_min, j);
+            Dy_Deta_min = first_deriv(y_vals_mat, 'j', i_min, j);
+            Dx_Deta_max = first_deriv(x_vals_mat, 'j', i_max, j);
+            Dy_Deta_max = first_deriv(y_vals_mat, 'j', i_max, j);
+            Dx_Deta_Deta_min = second_deriv(x_vals_mat, 'j', i_min, j);
+            Dy_Deta_Deta_min = second_deriv(y_vals_mat, 'j', i_min, j);
+            Dx_Deta_Deta_max = second_deriv(x_vals_mat, 'j', i_max, j);
+            Dy_Deta_Deta_max = second_deriv(y_vals_mat, 'j', i_max, j);
 
-        if (fabs(Dy_Deta_min) > fabs(Dx_Deta_min)) {
-            psi_vals_mat[offset2d(i_min, j, i_max+1)] = - Dy_Deta_Deta_min / Dy_Deta_min;
-        }
-        if (fabs(Dy_Deta_min) < fabs(Dx_Deta_min)) {
-            psi_vals_mat[offset2d(i_min, j, i_max+1)] = - Dx_Deta_Deta_min / Dx_Deta_min;
-        }
-        if (fabs(Dy_Deta_max) > fabs(Dx_Deta_max)) {
-            psi_vals_mat[offset2d(i_max, j, i_max+1)] = - Dy_Deta_Deta_max / Dy_Deta_max;
-        }
-        if (fabs(Dy_Deta_max) < fabs(Dx_Deta_max)) {
-            psi_vals_mat[offset2d(i_max, j, i_max+1)] = - Dx_Deta_Deta_max / Dx_Deta_max;
+            if (fabs(Dy_Deta_min) > fabs(Dx_Deta_min)) {
+                psi_vals_mat[offset2d(i_min, j, i_max+1)] = - Dy_Deta_Deta_min / Dy_Deta_min;
+            }
+            if (fabs(Dy_Deta_min) < fabs(Dx_Deta_min)) {
+                psi_vals_mat[offset2d(i_min, j, i_max+1)] = - Dx_Deta_Deta_min / Dx_Deta_min;
+            }
+            if (fabs(Dy_Deta_max) > fabs(Dx_Deta_max)) {
+                psi_vals_mat[offset2d(i_max, j, i_max+1)] = - Dy_Deta_Deta_max / Dy_Deta_max;
+            }
+            if (fabs(Dy_Deta_max) < fabs(Dx_Deta_max)) {
+                psi_vals_mat[offset2d(i_max, j, i_max+1)] = - Dx_Deta_Deta_max / Dx_Deta_max;
+            }
+        } else {
+            psi_vals_mat[offset2d(i_min, j, i_max+1)] = psi_valuse;
+            psi_vals_mat[offset2d(i_max, j, i_max+1)] = psi_valuse;
         }
     }
 
     /* eq 5 */
     for (i = 0; i < i_max+1; i++) {
-        Dx_Dxai_min = first_deriv(x_vals_mat, 'i', i, j_min);
-        Dy_Dxai_min = first_deriv(y_vals_mat, 'i', i, j_min);
-        Dx_Dxai_max = first_deriv(x_vals_mat, 'i', i, j_max);
-        Dy_Dxai_max = first_deriv(y_vals_mat, 'i', i, j_max);
-        Dx_Dxai_Dxai_min = second_deriv(x_vals_mat, 'i', i, j_min);
-        Dy_Dxai_Dxai_min = second_deriv(y_vals_mat, 'i', i, j_min);
-        Dx_Dxai_Dxai_max = second_deriv(x_vals_mat, 'i', i, j_max);
-        Dy_Dxai_Dxai_max = second_deriv(y_vals_mat, 'i', i, j_max);
+        if (phi_valuse == -1) {
+            Dx_Dxai_min = first_deriv(x_vals_mat, 'i', i, j_min);
+            Dy_Dxai_min = first_deriv(y_vals_mat, 'i', i, j_min);
+            Dx_Dxai_max = first_deriv(x_vals_mat, 'i', i, j_max);
+            Dy_Dxai_max = first_deriv(y_vals_mat, 'i', i, j_max);
+            Dx_Dxai_Dxai_min = second_deriv(x_vals_mat, 'i', i, j_min);
+            Dy_Dxai_Dxai_min = second_deriv(y_vals_mat, 'i', i, j_min);
+            Dx_Dxai_Dxai_max = second_deriv(x_vals_mat, 'i', i, j_max);
+            Dy_Dxai_Dxai_max = second_deriv(y_vals_mat, 'i', i, j_max);
 
-        if (fabs(Dx_Dxai_min) > fabs(Dy_Dxai_min)) {
-            phi_vals_mat[offset2d(i, j_min, i_max+1)] = - Dx_Dxai_Dxai_min / Dx_Dxai_min;
-        }
-        if (fabs(Dx_Dxai_min) < fabs(Dy_Dxai_min)) {
-            phi_vals_mat[offset2d(i, j_min, i_max+1)] = - Dy_Dxai_Dxai_min / Dy_Dxai_min;
-        }
-        if (fabs(Dx_Dxai_max) > fabs(Dy_Dxai_max)) {
-            phi_vals_mat[offset2d(i, j_max, i_max+1)] = - Dx_Dxai_Dxai_max / Dx_Dxai_max;
-        }
-        if (fabs(Dx_Dxai_max) < fabs(Dy_Dxai_max)) {
-            phi_vals_mat[offset2d(i, j_max, i_max+1)] = - Dy_Dxai_Dxai_max / Dy_Dxai_max;
+            if (fabs(Dx_Dxai_min) > fabs(Dy_Dxai_min)) {
+                phi_vals_mat[offset2d(i, j_min, i_max+1)] = - Dx_Dxai_Dxai_min / Dx_Dxai_min;
+            }
+            if (fabs(Dx_Dxai_min) < fabs(Dy_Dxai_min)) {
+                phi_vals_mat[offset2d(i, j_min, i_max+1)] = - Dy_Dxai_Dxai_min / Dy_Dxai_min;
+            }
+            if (fabs(Dx_Dxai_max) > fabs(Dy_Dxai_max)) {
+                phi_vals_mat[offset2d(i, j_max, i_max+1)] = - Dx_Dxai_Dxai_max / Dx_Dxai_max;
+            }
+            if (fabs(Dx_Dxai_max) < fabs(Dy_Dxai_max)) {
+                phi_vals_mat[offset2d(i, j_max, i_max+1)] = - Dy_Dxai_Dxai_max / Dy_Dxai_max;
+            }
+        } else {
+            phi_vals_mat[offset2d(i_min, j, i_max+1)] = phi_valuse;
+            phi_vals_mat[offset2d(i_max, j, i_max+1)] = phi_valuse;
         }
     }
 
@@ -1166,6 +1182,10 @@ Vec2 step(double *Cx_vals_mat, double *Cy_vals_mat, double *fx_vals_mat,
     return ans;
 }
 
+/* printing a 1D array to a file
+argument list:
+fp - file pointer
+data - 1D array */
 void mat_print_to_file(FILE *fp, double *data)
 {
     int j_index, i_index;
@@ -1177,6 +1197,9 @@ void mat_print_to_file(FILE *fp, double *data)
     }
 }
 
+/* printing a 1D array to the commend line
+argument list:
+data - 1D array */
 void mat_print(double *data)
 {
     int j_index, i_index;
@@ -1188,6 +1211,14 @@ void mat_print(double *data)
     }
 }
 
+/* returning the absolut maximum valus at the Lx matrix
+argument list:
+x_vals_mat - 1D array of the x valus
+alpha_vals_mat - 1D array of the alpha valus 
+phi_vals_mat - 1D array of the phi valus
+beta_vals_mat - 1D array of the beta valus
+gama_vals_mat - 1D array of the gama valus
+psi_vals_mat - 1D array of the psi valus */
 double calculate_max_L_x(double *x_vals_mat, double *alpha_vals_mat,
            double *phi_vals_mat, double *beta_vals_mat,
            double *gama_vals_mat, double *psi_vals_mat)
@@ -1200,14 +1231,22 @@ double calculate_max_L_x(double *x_vals_mat, double *alpha_vals_mat,
             current_L_x = L_x(x_vals_mat, alpha_vals_mat,
                               phi_vals_mat, beta_vals_mat,
                               gama_vals_mat, psi_vals_mat, i_index, j_index);
-            if (current_L_x > max_L_x) {
-                max_L_x = current_L_x;
+            if (fabs(current_L_x) > max_L_x) {
+                max_L_x = fabs(current_L_x);
             }
         }
     }
     return max_L_x;
 }
 
+/* returning the absolut maximum valus at the Ly matrix
+argument list:
+y_vals_mat - 1D array of the y valus
+alpha_vals_mat - 1D array of the alpha valus 
+phi_vals_mat - 1D array of the phi valus
+beta_vals_mat - 1D array of the beta valus
+gama_vals_mat - 1D array of the gama valus
+psi_vals_mat - 1D array of the psi valus */
 double calculate_max_L_y(double *y_vals_mat, double *alpha_vals_mat,
            double *phi_vals_mat, double *beta_vals_mat,
            double *gama_vals_mat, double *psi_vals_mat)
@@ -1220,8 +1259,8 @@ double calculate_max_L_y(double *y_vals_mat, double *alpha_vals_mat,
             current_L_y = L_y(y_vals_mat, alpha_vals_mat,
                               phi_vals_mat, beta_vals_mat,
                               gama_vals_mat, psi_vals_mat, i_index, j_index);
-            if (current_L_y > max_L_y) {
-                max_L_y = current_L_y;
+            if (fabs(current_L_y) > max_L_y) {
+                max_L_y = fabs(current_L_y);
             }
         }
     }

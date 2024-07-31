@@ -33,3 +33,9 @@ r
 
 omega
 1
+
+phi
+0
+
+psi
+0
