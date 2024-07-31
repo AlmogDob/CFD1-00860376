@@ -13,6 +13,11 @@
 #define dprintF(expr) printf(#expr " = %g\n", expr)
 #define dprintD(expr) printf(#expr " = %g\n", expr)
 
+typedef struct {
+    double x;
+    double y;
+} Vec2;
+
 void read_input(char *dir);
 void output_solution(char *dir, double *data);
 int offset2d(int i, int j, int ni);
@@ -59,7 +64,7 @@ void BC_sweep1(double *A, double *B, double *C, double *D);
 void BC_sweep2(double *A, double *B, double *C, double *D);
 int tridiag(double *a, double *b, double *c, double *d,
             double *u, int is, int ie);
-int step(double *Cx_vals_mat, double *Cy_vals_mat, double *fx_vals_mat,
+Vec2 step(double *Cx_vals_mat, double *Cy_vals_mat, double *fx_vals_mat,
          double *fy_vals_mat, double *x_vals_mat_current,
          double *x_vals_mat_next, double *y_vals_mat_current,
          double *y_vals_mat_next, double *alpha_vals_mat,
@@ -68,6 +73,12 @@ int step(double *Cx_vals_mat, double *Cy_vals_mat, double *fx_vals_mat,
          double *A, double *B, double *C, double *D, double *temp_row);
 void mat_print_to_file(FILE *fp, double *data);
 void mat_print(double *data);
+double calculate_max_L_x(double *x_vals_mat, double *alpha_vals_mat,
+           double *phi_vals_mat, double *beta_vals_mat,
+           double *gama_vals_mat, double *psi_vals_mat);
+double calculate_max_L_y(double *y_vals_mat, double *alpha_vals_mat,
+           double *phi_vals_mat, double *beta_vals_mat,
+           double *gama_vals_mat, double *psi_vals_mat);
 
 /* Input variables */
 double t, delta_x, delta_y, XSF, YSF, x_int = 1, r, omega;
@@ -77,8 +88,8 @@ int i_max, j_max, i_TEL, i_LE, i_TEU, i_min = 0, j_min = 0;
 int main(int argc, char const *argv[])
 {
     /* decleraitons */
-    char input_dir[MAXDIR];
-    int i_index, j_index, success = 0;
+    char input_dir[MAXDIR], temp_word[MAXWORD];
+    int i_index, j_index;
     double *x_vals_mat_init, *y_vals_mat_init, *x_vals_mat_current,
            *y_vals_mat_current, *x_vals_mat_next, *y_vals_mat_next,
            *alpha_vals_mat, *beta_vals_mat, *gama_vals_mat, *psi_vals_mat,
@@ -86,6 +97,7 @@ int main(int argc, char const *argv[])
            *Cy_vals_mat;
     /* matrix diaganosl for different sweeps */
     double *A, *B, *C, *D, *temp_row;
+    Vec2 result, first_result;
 
     /*------------------------------------------------------------*/
 
@@ -244,38 +256,47 @@ int main(int argc, char const *argv[])
     initialize(x_vals_mat_init, y_vals_mat_init, alpha_vals_mat, beta_vals_mat, gama_vals_mat,
                psi_vals_mat, phi_vals_mat);
     
-    mat_print(phi_vals_mat);
-
     copy_mat(x_vals_mat_current, x_vals_mat_init);
     copy_mat(x_vals_mat_next, x_vals_mat_init);
     copy_mat(y_vals_mat_current, y_vals_mat_init);
     copy_mat(y_vals_mat_next, y_vals_mat_init);
 
-    // mat_print(x_vals_mat_current);
-
-    for (i_index = 0; i_index < 100; i_index++) {
-        success = step(Cx_vals_mat, Cy_vals_mat, fx_vals_mat, fy_vals_mat,
+    for (i_index = 0; i_index < 1e5; i_index++) {
+        result = step(Cx_vals_mat, Cy_vals_mat, fx_vals_mat, fy_vals_mat,
                        x_vals_mat_current, x_vals_mat_next, y_vals_mat_current,
                        y_vals_mat_next, alpha_vals_mat, phi_vals_mat,
                        beta_vals_mat, gama_vals_mat, psi_vals_mat,
                        A, B, C, D, temp_row);
-        if (success == 1) {
+        if (i_index == 0) {
+            first_result = result;
+        }
+        if (result.x == 1 && result.y == 0) {
             fprintf(stderr, "ERROR: Step - sweep 1\n");
             exit(1);
         }
-        if (success == 2) {
+        if (result.x == 2 && result.y == 0) {
             fprintf(stderr, "ERROR: Step - sweep 2\n");
             exit(2);
         }
 
         copy_mat(x_vals_mat_current, x_vals_mat_next);
         copy_mat(y_vals_mat_current, y_vals_mat_next);
+        
+        /* printing Lx and Ly */
+        printf("%d. Lx_max: %0.7f, Ly_max: %0.7f\n",i_index+1, result.x, result.y);
+
+        /* checking convergenc */
+        if (log10(fabs(first_result.x/result.x)) > 5 && log10(fabs(first_result.y/result.y))) {
+            break;
+        }
     }
 
     output_solution("x_mat_init.txt", x_vals_mat_init);
     output_solution("y_mat_init.txt", y_vals_mat_init);
-    output_solution("x_mat_next.txt", x_vals_mat_next);
-    output_solution("y_mat_next.txt", y_vals_mat_next);
+    sprintf(temp_word, "x_mat_%d.txt", i_index+1);
+    output_solution(temp_word, x_vals_mat_next);
+    sprintf(temp_word, "y_mat_%d.txt", i_index+1);
+    output_solution(temp_word, y_vals_mat_next);
 
     /*------------------------------------------------------------*/
 
@@ -1082,7 +1103,7 @@ int tridiag(double *a, double *b, double *c, double *d, double *u, int is, int i
 } 
 
 /* doing the first sweep according to eq 9-17;
-returns 0 on success
+returns Vec2 with Lx_max, Ly_max (the residual)
 argument list:
 Cx_vals_mat - 1D array of the Cx valus 
 Cy_vals_mat - 1D array of the Cy valus
@@ -1098,7 +1119,7 @@ beta_vals_mat - 1D array of the beta valus
 gama_vals_mat - 1D array of the gama valus
 psi_vals_mat - 1D array of the psi valus
 A-D are temperary vectors for inverting the tri-diag matrices */
-int step(double *Cx_vals_mat, double *Cy_vals_mat, double *fx_vals_mat,
+Vec2 step(double *Cx_vals_mat, double *Cy_vals_mat, double *fx_vals_mat,
          double *fy_vals_mat, double *x_vals_mat_current,
          double *x_vals_mat_next, double *y_vals_mat_current,
          double *y_vals_mat_next, double *alpha_vals_mat,
@@ -1107,6 +1128,7 @@ int step(double *Cx_vals_mat, double *Cy_vals_mat, double *fx_vals_mat,
          double *A, double *B, double *C, double *D, double *temp_row)
 {
     int success, i, j, index; 
+    Vec2 ans = {.x = 0, .y = 0};
 
     alpha_beta_gama(alpha_vals_mat, beta_vals_mat, gama_vals_mat, x_vals_mat_current, y_vals_mat_current);
 
@@ -1115,13 +1137,15 @@ int step(double *Cx_vals_mat, double *Cy_vals_mat, double *fx_vals_mat,
            beta_vals_mat, gama_vals_mat, psi_vals_mat, A, B,
            C, D, temp_row);
     if (success != 0) {
-        return 1;
+        ans.x = 1;
+        return ans;
     }
     success = sweep2(Cx_vals_mat, Cy_vals_mat, fx_vals_mat,
                      fy_vals_mat, gama_vals_mat, A, B,
                      C, D, temp_row);
     if (success != 0) {
-        return 2;
+        ans.x = 2;
+        return ans;
     }
 
     for (i = 0; i < i_max+1; i++) {
@@ -1131,8 +1155,15 @@ int step(double *Cx_vals_mat, double *Cy_vals_mat, double *fx_vals_mat,
             y_vals_mat_next[index] = Cy_vals_mat[index] + y_vals_mat_current[index];
         }
     }
-    
-    return 0;
+
+    ans.x = calculate_max_L_x(x_vals_mat_current, alpha_vals_mat,
+                              phi_vals_mat, beta_vals_mat, gama_vals_mat,
+                              psi_vals_mat);
+    ans.y = calculate_max_L_y(y_vals_mat_current, alpha_vals_mat,
+                              phi_vals_mat, beta_vals_mat, gama_vals_mat,
+                              psi_vals_mat);
+
+    return ans;
 }
 
 void mat_print_to_file(FILE *fp, double *data)
@@ -1155,4 +1186,44 @@ void mat_print(double *data)
         }
         printf("\n");
     }
+}
+
+double calculate_max_L_x(double *x_vals_mat, double *alpha_vals_mat,
+           double *phi_vals_mat, double *beta_vals_mat,
+           double *gama_vals_mat, double *psi_vals_mat)
+{
+    int j_index, i_index;
+    double max_L_x = 0, current_L_x;
+
+    for (j_index = 0; j_index < j_max+1; j_index++) {
+        for (i_index = 0; i_index < i_max+1; i_index++) {
+            current_L_x = L_x(x_vals_mat, alpha_vals_mat,
+                              phi_vals_mat, beta_vals_mat,
+                              gama_vals_mat, psi_vals_mat, i_index, j_index);
+            if (current_L_x > max_L_x) {
+                max_L_x = current_L_x;
+            }
+        }
+    }
+    return max_L_x;
+}
+
+double calculate_max_L_y(double *y_vals_mat, double *alpha_vals_mat,
+           double *phi_vals_mat, double *beta_vals_mat,
+           double *gama_vals_mat, double *psi_vals_mat)
+{
+    int j_index, i_index;
+    double max_L_y = 0, current_L_y;
+
+    for (j_index = 0; j_index < j_max+1; j_index++) {
+        for (i_index = 0; i_index < i_max+1; i_index++) {
+            current_L_y = L_y(y_vals_mat, alpha_vals_mat,
+                              phi_vals_mat, beta_vals_mat,
+                              gama_vals_mat, psi_vals_mat, i_index, j_index);
+            if (current_L_y > max_L_y) {
+                max_L_y = current_L_y;
+            }
+        }
+    }
+    return max_L_y;
 }
