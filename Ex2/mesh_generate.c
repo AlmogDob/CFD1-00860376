@@ -62,7 +62,8 @@ typedef struct {
 } Vec2;
 
 void read_input(char *dir);
-void output_solution(char *dir, double *data);
+void output_solution(FILE *fp, double *x_vals_mat, double *y_vals_mat);
+void mat_output_to_file(FILE *fp, double *data);
 int offset2d(int i, int j, int ni);
 void initialize(double *x_vals_mat, double *y_vals_mat, double *alpha_vals_mat,
                 double *beta_vals_mat, double *gama_vals_mat,
@@ -114,7 +115,6 @@ Vec2 step(double *Cx_vals_mat, double *Cy_vals_mat, double *fx_vals_mat,
          double *phi_vals_mat, double *beta_vals_mat,
          double *gama_vals_mat, double *psi_vals_mat,
          double *A, double *B, double *C, double *D, double *temp_row);
-void mat_print_to_file(FILE *fp, double *data);
 void mat_print(double *data);
 double calculate_max_L_x(double *x_vals_mat, double *alpha_vals_mat,
            double *phi_vals_mat, double *beta_vals_mat,
@@ -128,10 +128,10 @@ double t, delta_x, delta_y, XSF, YSF, x_int = 1, r, omega, psi_valuse = NAN, phi
 int i_max, j_max, i_TEL, i_LE, i_TEU, i_min = 0, j_min = 0;
 
 
-int main(int argc, char const *argv[])
+int main()
 {
     /* decleraitons */
-    char input_dir[MAXDIR], output_dir[MAXDIR], temp_word[MAXWORD];
+    char input_dir[MAXDIR];
     int i_index, j_index;
     double *x_vals_mat_init, *y_vals_mat_init, *x_vals_mat_current,
            *y_vals_mat_current, *x_vals_mat_next, *y_vals_mat_next,
@@ -141,11 +141,15 @@ int main(int argc, char const *argv[])
     /* matrix diaganosl for different sweeps */
     double *A, *B, *C, *D, *temp_row;
     Vec2 result, first_result;
+    FILE *output_fp = fopen("mesh_output.txt", "wt");
+    if (output_fp == NULL) {
+        fprintf(stderr, "ERROR: problem opening output file | %s\n", strerror(errno));
+        return -1;
+    }
 
     /*------------------------------------------------------------*/
 
     strcpy(input_dir, "mesh_input.txt");
-    strcpy(output_dir, "mesh_output.txt");
 
     /*------------------------------------------------------------*/
 
@@ -325,6 +329,8 @@ int main(int argc, char const *argv[])
 
     /* printing Lx and Ly */
     // printf("%4d. Lx_max: %0.10f, Ly_max: %0.10f\n",i_index+1, result.x, result.y);
+    
+    output_solution(output_fp, x_vals_mat_next, y_vals_mat_next);
 
     /*------------------------------------------------------------*/
 
@@ -348,6 +354,8 @@ int main(int argc, char const *argv[])
     free(C);
     free(D);
     free(temp_row);
+
+    fclose(output_fp);
 
     return 0;
 }
@@ -413,13 +421,27 @@ void read_input(char *dir)
     fclose(fp);
 }
 
+/* output solution;
+argument list:
+fp - file pointer to output file
+x_vals_mat - 1D array of the x valuse 
+y_vals_mat - 1D array of the y valuse */
+void output_solution(FILE *fp, double *x_vals_mat, double *y_vals_mat)
+{
+    fprintf(fp, "i_max\n%d\n\nj_max\n%d\n\n", i_max, j_max);
+    fprintf(fp, "x_vals\n");
+    mat_output_to_file(fp, x_vals_mat);
+    fprintf(fp, "\n");
+    fprintf(fp, "y_vals\n");
+    mat_output_to_file(fp, y_vals_mat);
+}
+
 /* output data;
 argument list:
-dir - the directory of the output file.
-data - the solution vector */
-void output_solution(char *dir, double *data)
+fp - file pointer to output file
+data - 1D array of the y valuse */
+void mat_output_to_file(FILE *fp, double *data)
 {
-    FILE *fp = fopen(dir, "wt");
     int i, j;
     
     for (j = 0; j < j_max+1; j++) {
@@ -428,8 +450,6 @@ void output_solution(char *dir, double *data)
         }
         fprintf(fp, "\n");
     }
-
-    fclose(fp);
 }
 
 /* converts a 2D index into 1D index
@@ -890,7 +910,7 @@ int sweep1(double *fx_vals_mat, double *fy_vals_mat, double *x_vals_mat,
            double *psi_vals_mat, double *A, double *B,
            double *C,  double *D, double *temp_row)
 {
-    int i_index, j_index, success = 0;
+    int j_index, success = 0;
 
     /* solving for each j */
     for (j_index = 0; j_index < j_max+1; j_index++) {
@@ -933,7 +953,7 @@ int sweep2(double *Cx_vals_mat, double *Cy_vals_mat, double *fx_vals_mat,
            double *fy_vals_mat, double *gama_vals_mat, double *A,
            double *B, double *C, double *D, double *temp_row)
 {
-    int i_index, j_index, success = 0;
+    int i_index, success = 0;
 
     /* solving for each i */
     for (i_index = 0; i_index < i_max+1; i_index++) {
@@ -1204,21 +1224,6 @@ Vec2 step(double *Cx_vals_mat, double *Cy_vals_mat, double *fx_vals_mat,
                               psi_vals_mat);
 
     return ans;
-}
-
-/* printing a 1D array to a file
-argument list:
-fp - file pointer
-data - 1D array */
-void mat_print_to_file(FILE *fp, double *data)
-{
-    int j_index, i_index;
-    for (j_index = 0; j_index < j_max+1; j_index++) {
-        for (i_index = 0; i_index < i_max+1; i_index++) {
-            fprintf(fp, "%g ", data[offset2d(i_index, j_index, i_max+1)]);
-        }
-        fprintf(fp, "\n");
-    }
 }
 
 /* printing a 1D array to the commend line
