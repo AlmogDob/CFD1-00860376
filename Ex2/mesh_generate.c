@@ -131,7 +131,7 @@ int i_max, j_max, i_TEL, i_LE, i_TEU, i_min = 0, j_min = 0;
 int main(int argc, char const *argv[])
 {
     /* decleraitons */
-    char input_dir[MAXDIR], temp_word[MAXWORD];
+    char input_dir[MAXDIR], output_dir[MAXDIR], temp_word[MAXWORD];
     int i_index, j_index;
     double *x_vals_mat_init, *y_vals_mat_init, *x_vals_mat_current,
            *y_vals_mat_current, *x_vals_mat_next, *y_vals_mat_next,
@@ -141,22 +141,11 @@ int main(int argc, char const *argv[])
     /* matrix diaganosl for different sweeps */
     double *A, *B, *C, *D, *temp_row;
     Vec2 result, first_result;
-    FILE *Ls_fp = fopen("./matrices/Ls_valuse", "wt");
 
     /*------------------------------------------------------------*/
 
-    /* Geting the input and output directories */
-    if (--argc != 1) {
-        fprintf(stderr, "ERROR: not right usage\nUsage: main 'input dir' 'output dir'\n");
-        return -1;
-    }
-
-    strncpy(input_dir, (*(++argv)), MAXDIR);
-
-    if (input_dir[MAXDIR-1] != '\0') {
-        fprintf(stderr, "Error: input too long\n");
-        return -1;
-    }
+    strcpy(input_dir, "mesh_input.txt");
+    strcpy(output_dir, "mesh_output.txt");
 
     /*------------------------------------------------------------*/
 
@@ -327,10 +316,6 @@ int main(int argc, char const *argv[])
 
         copy_mat(x_vals_mat_current, x_vals_mat_next);
         copy_mat(y_vals_mat_current, y_vals_mat_next);
-        
-        /* printing Lx and Ly */
-        printf("%4d. Lx_max: %0.10f, Ly_max: %0.10f\n",i_index+1, result.x, result.y);
-        fprintf(Ls_fp, "%g, %g\n", result.x, result.y);
 
         /* checking convergenc */
         if (log10(fabs(first_result.x/result.x)) > 5 && log10(fabs(first_result.y/result.y))) {
@@ -338,12 +323,8 @@ int main(int argc, char const *argv[])
         }
     }
 
-    output_solution("./matrices/x_mat_init.txt", x_vals_mat_init);
-    output_solution("./matrices/y_mat_init.txt", y_vals_mat_init);
-    sprintf(temp_word, "./matrices/x_mat_%d.txt", i_index+1);
-    output_solution(temp_word, x_vals_mat_next);
-    sprintf(temp_word, "./matrices/y_mat_%d.txt", i_index+1);
-    output_solution(temp_word, y_vals_mat_next);
+    /* printing Lx and Ly */
+    // printf("%4d. Lx_max: %0.10f, Ly_max: %0.10f\n",i_index+1, result.x, result.y);
 
     /*------------------------------------------------------------*/
 
