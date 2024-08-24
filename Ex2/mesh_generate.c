@@ -428,7 +428,7 @@ x_vals_mat - 1D array of the x valuse
 y_vals_mat - 1D array of the y valuse */
 void output_solution(FILE *fp, double *x_vals_mat, double *y_vals_mat)
 {
-    fprintf(fp, "i_max\n%d\n\nj_max\n%d\n\n", i_max, j_max);
+    fprintf(fp, "ni\n%d\n\nnj\n%d\n\n", i_max+1, j_max+1);
     fprintf(fp, "x_vals\n");
     mat_output_to_file(fp, x_vals_mat);
     fprintf(fp, "\n");

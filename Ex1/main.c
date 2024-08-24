@@ -432,6 +432,7 @@ void read_input(char *dir)
     fclose(fp);
 }
 
+
 /* output data;
 argument list:
 dir - the directory of the output file.
