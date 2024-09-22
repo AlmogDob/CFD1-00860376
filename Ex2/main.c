@@ -25,11 +25,23 @@ void print_mat2D(double *data);
 void print_layer_of_mat3D(double *data, int layer);
 double first_deriv(double *mat, char diraction, int i, int j);
 double second_deriv(double *mat, char diraction, int i, int j);
-double calculate_one_over_jacobian_at_a_point(double *x_vals_mat, double *y_vals_mat,
-                                   int i, int j);
+double calculate_one_over_jacobian_at_a_point(double *x_vals_mat,
+                                              double *y_vals_mat, int i,
+                                              int j);
 void contravariant_velocities(double *U, double *V, double *x_vals_mat,
                               double *y_vals_mat, double *Q, int i, int j);
+void calculate_u_and_v(double *u, double *v, double *Q, int i, int j);
+double calculate_energy(void);
+void calculate_E_hat_at_a_point(double *E0, double *E1, double *E2,
+                                double *E3, double *x_vals_mat,
+                                double *y_vals_mat, double *Q, int i,
+                                int j);
+void calculate_F_hat_at_a_point(double *F0, double *F1, double *F2,
+                                double *E3, double *x_vals_mat,
+                                double *y_vals_mat, double *Q, int i,
+                                int j);                               
 void initialize_flow_field(double *Q);
+void RHS(double *S, double *Q, double *x_vals_mat, double *y_vals_mat);
 
 /* global variables */
 int ni, nj, i_TEL, i_LE, i_TEU, j_TEL, j_LE, j_TEU;
@@ -40,7 +52,8 @@ int main(int argc, char const *argv[])
 {
 /* declerations */
     char input_dir[MAXDIR], mesh_dir[MAXDIR], current_word[MAXWORD];
-    double *x_vals_mat, *y_vals_mat, *Q, *J_vals_mat;
+    double *x_vals_mat, *y_vals_mat, *J_vals_mat, *Q, *S, *W;
+    int max_ni_nj = (int)fmax((double)ni, (double)nj);
 
 /* getting the input directory and mesh directory*/
     if (--argc != 2) {
@@ -103,11 +116,25 @@ int main(int argc, char const *argv[])
             J_vals_mat[offset2d(i_index, j_index, ni)] = 0;
         }
     }
+    W = (double *)malloc(sizeof(double) * max_ni_nj * 4);
+    for (int i_index = 0; i_index < max_ni_nj; i_index++) {   /* filling the matrix with zeros */
+        for (int j_index = 0; j_index < max_ni_nj; j_index++) {
+            W[offset2d(i_index, j_index, ni)] = 0;
+        }
+    }
     Q = (double *)malloc(sizeof(double) * ni * nj * 4);
-    for (int i_index = 0; i_index < ni; i_index++) {
+    for (int i_index = 0; i_index < ni; i_index++) {   /* filling the matrix with zeros */
         for (int j_index = 0; j_index < nj; j_index++) {
             for (int k_index = 0; k_index < 4; k_index++) {
                 Q[offset3d(i_index, j_index, k_index, ni, nj)] = 0;
+            }
+        }
+    }
+    S = (double *)malloc(sizeof(double) * ni * nj * 4);
+    for (int i_index = 0; i_index < ni; i_index++) {   /* filling the matrix with zeros */
+        for (int j_index = 0; j_index < nj; j_index++) {
+            for (int k_index = 0; k_index < 4; k_index++) {
+                S[offset3d(i_index, j_index, k_index, ni, nj)] = 0;
             }
         }
     }
@@ -140,6 +167,7 @@ int main(int argc, char const *argv[])
     // for (int i = 0; i < ni; i++) {
     //     for (int j = 0; j < nj; j++) {
     //         J_vals_mat[offset2d(i, j, ni)] = 1.0 / calculate_one_over_jacobian_at_a_point(x_vals_mat, y_vals_mat, i, j);
+    //         // J_vals_mat[offset2d(i, j, ni)] = i + j;
     //     }
     // }
     // print_mat2D(J_vals_mat);
@@ -290,7 +318,8 @@ int offset3d(int i, int j, int k, int ni, int nj)
 void print_mat2D(double *data)
 {
     int j_index, i_index;
-    for (j_index = 0; j_index < nj; j_index++) {
+
+    for (j_index = nj - 1; j_index >= 0; j_index--) {
         for (i_index = 0; i_index < ni; i_index++) {
             printf("%g ", data[offset2d(i_index, j_index, ni)]);
         }
@@ -302,7 +331,8 @@ void print_mat2D(double *data)
 void print_layer_of_mat3D(double *data, int layer)
 {
     int j_index, i_index;
-    for (j_index = 0; j_index < nj; j_index++) {
+
+    for (j_index = nj - 1; j_index >= 0; j_index--) {
         for (i_index = 0; i_index < ni; i_index++) {
             printf("%g ", data[offset3d(i_index, j_index, layer, ni, nj)]);
         }
@@ -364,14 +394,18 @@ argument list:
 x_vals_mat - 1D array of the x valuse 
 y_vals_mat - 1D array of the y valuse 
 i, j - the points coordinates */
-double calculate_one_over_jacobian_at_a_point(double *x_vals_mat, double *y_vals_mat,
-                                   int i, int j)
+double calculate_one_over_jacobian_at_a_point(double *x_vals_mat,
+                                              double *y_vals_mat, int i,
+                                              int j)
 {
-    double dx_dxi = first_deriv(x_vals_mat, 'i', i, j);
-    double dx_deta = first_deriv(x_vals_mat, 'j', i, j);
-    double dy_dxi = first_deriv(y_vals_mat, 'i', i, j);
-    double dy_deta = first_deriv(y_vals_mat, 'j', i, j);
-    return 1.0 / (dx_dxi*dy_deta - dy_dxi*dx_deta);
+    double dx_dxi, dx_deta, dy_dxi, dy_deta;
+
+    dx_dxi = first_deriv(x_vals_mat, 'i', i, j);
+    dx_deta = first_deriv(x_vals_mat, 'j', i, j);
+    dy_dxi = first_deriv(y_vals_mat, 'i', i, j);
+    dy_deta = first_deriv(y_vals_mat, 'j', i, j);
+
+    return (dx_dxi*dy_deta - dy_dxi*dx_deta);
 }
 
 /* calculating the contravariant velocities in a single point
@@ -385,35 +419,107 @@ i, j - the points coordinates */
 void contravariant_velocities(double *U, double *V, double *x_vals_mat,
                               double *y_vals_mat, double *Q, int i, int j)
 {
-    double J = calculate_one_over_jacobian_at_a_point(x_vals_mat, y_vals_mat, i, j);
-    double dx_dxi = first_deriv(x_vals_mat, 'i', i, j);
-    double dx_deta = first_deriv(x_vals_mat, 'j', i, j);
-    double dy_dxi = first_deriv(y_vals_mat, 'i', i, j);
-    double dy_deta = first_deriv(y_vals_mat, 'j', i, j);
+    double J, dx_dxi, dx_deta, dy_dxi, dy_deta, dxi_dx, dxi_dy, deta_dx,
+    deta_dy, u, v;
 
-    double dxi_dx  =   J * dy_deta;
-    double dxi_dy  = - J * dx_deta;
-    double deta_dx = - J * dy_dxi;
-    double deta_dy =   J * dx_dxi;
+    J = 1.0 / calculate_one_over_jacobian_at_a_point(x_vals_mat, y_vals_mat, i, j);
+    dx_dxi = first_deriv(x_vals_mat, 'i', i, j);
+    dx_deta = first_deriv(x_vals_mat, 'j', i, j);
+    dy_dxi = first_deriv(y_vals_mat, 'i', i, j);
+    dy_deta = first_deriv(y_vals_mat, 'j', i, j);
 
-    double u = Q[offset3d(i, j, 1, ni, nj)] / Q[offset3d(i, j, 0, ni, nj)]; /* rho*u / rho */
-    double v = Q[offset3d(i, j, 2, ni, nj)] / Q[offset3d(i, j, 0, ni, nj)]; /* rho*v / rho */
+    dxi_dx  =   J * dy_deta;
+    dxi_dy  = - J * dx_deta;
+    deta_dx = - J * dy_dxi;
+    deta_dy =   J * dx_dxi;
+
+    calculate_u_and_v(&u, &v, Q, i, j);
 
     *U = dxi_dx  * u + dxi_dy  * v;
     *V = deta_dx * u + deta_dy * v;
 }
 
+void calculate_u_and_v(double *u, double *v, double *Q, int i, int j)
+{
+    *u = Q[offset3d(i, j, 1, ni, nj)] / Q[offset3d(i, j, 0, ni, nj)]; /* rho*u / rho */
+    *v = Q[offset3d(i, j, 2, ni, nj)] / Q[offset3d(i, j, 0, ni, nj)]; /* rho*v / rho */
+}
+
+double calculate_energy(void)
+{
+    double p, speed_of_sound, velocity, internal_energy, energy;
+
+    p = environment_pressure;
+    speed_of_sound = sqrt(Gamma * p / density);
+
+    velocity = Mach * speed_of_sound;
+    internal_energy = p / (Gamma - 1) / density;
+    energy = density * internal_energy + density * velocity * velocity / 2;
+    return energy;
+}
+
+void calculate_E_hat_at_a_point(double *E0, double *E1, double *E2,
+                                double *E3, double *x_vals_mat,
+                                double *y_vals_mat, double *Q, int i,
+                                int j)
+{
+    double u, v, U, V, one_over_J, dx_deta, dy_deta, dxi_dx, dxi_dy,
+    energy, p;
+
+    calculate_u_and_v(&u, &v, Q, i, j);
+    contravariant_velocities(&U, &V, x_vals_mat, y_vals_mat, Q, i, j);
+    one_over_J = calculate_one_over_jacobian_at_a_point(x_vals_mat, y_vals_mat, i, j);
+    dx_deta = first_deriv(x_vals_mat, 'j', i, j);
+    dy_deta = first_deriv(y_vals_mat, 'j', i, j);
+    dxi_dx  =   1 / one_over_J * dy_deta;
+    dxi_dy  = - 1 / one_over_J * dx_deta;
+    energy = calculate_energy();
+    p = environment_pressure;
+
+    *E0 = one_over_J * density * U;
+    *E1 = one_over_J * (density * u * U + dxi_dx * p); 
+    *E2 = one_over_J * (density * v * U + dxi_dy * p);
+    *E3 = one_over_J * (energy + p) * U;
+
+}
+
+void calculate_F_hat_at_a_point(double *F0, double *F1, double *F2,
+                                double *F3, double *x_vals_mat,
+                                double *y_vals_mat, double *Q, int i,
+                                int j)
+{
+    double u, v, U, V, one_over_J, dx_dxi, dy_dxi, deta_dx, deta_dy,
+    energy, p;
+
+    calculate_u_and_v(&u, &v, Q, i, j);
+    contravariant_velocities(&U, &V, x_vals_mat, y_vals_mat, Q, i, j);  
+    one_over_J = calculate_one_over_jacobian_at_a_point(x_vals_mat, y_vals_mat, i, j);
+    dx_dxi = first_deriv(x_vals_mat, 'i', i, j);
+    dy_dxi = first_deriv(y_vals_mat, 'i', i, j);
+    deta_dx = - 1 / one_over_J * dy_dxi;
+    deta_dy =   1 / one_over_J * dx_dxi;
+    energy = calculate_energy();
+    p = environment_pressure;
+
+    *F0 = one_over_J * V;
+    *F1 = one_over_J * (density * u * V + deta_dx * p);
+    *F2 = one_over_J * (density * v * V + deta_dy * p);
+    *F3 = one_over_J * (energy + p) * V;
+
+}
+
 void initialize_flow_field(double *Q)
 {
-    double p = environment_pressure;
-    double speed_of_sound = sqrt(Gamma * p / density);
+    double u, v, energy, p, speed_of_sound, velocity;
 
-    double velocity = Mach * speed_of_sound;
-    double u = velocity * cos(angle_of_attack_rad);
-    double v = velocity * sin(angle_of_attack_rad);
+    p = environment_pressure;
+    speed_of_sound = sqrt(Gamma * p / density);
 
-    double internal_energy = p / (Gamma - 1) / density;
-    double energy = density * internal_energy + density * velocity * velocity / 2;
+    velocity = Mach * speed_of_sound;
+    u = velocity * cos(angle_of_attack_rad);
+    v = velocity * sin(angle_of_attack_rad);
+
+    energy = calculate_energy();
 
     for (int i = 0; i < ni; i++) {
         for (int j = 0; j < nj; j++) {
@@ -423,4 +529,18 @@ void initialize_flow_field(double *Q)
             Q[offset3d(i, j, 3, ni, nj)] = energy;
         }
     }
+}
+
+
+void RHS(double *S, double *Q, double *x_vals_mat, double *y_vals_mat)
+{
+    /* zeroing S*/
+    for (int i_index = 0; i_index < ni; i_index++) {   
+        for (int j_index = 0; j_index < nj; j_index++) {
+            for (int k_index = 0; k_index < 4; k_index++) {
+                S[offset3d(i_index, j_index, k_index, ni, nj)] = 0;
+            }
+        }
+    }
+
 }
