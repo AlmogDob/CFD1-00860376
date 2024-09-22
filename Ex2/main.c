@@ -25,7 +25,7 @@ void print_mat2D(double *data);
 void print_layer_of_mat3D(double *data, int layer);
 double first_deriv(double *mat, char diraction, int i, int j);
 double second_deriv(double *mat, char diraction, int i, int j);
-double calculate_one_over_jacobian(double *x_vals_mat, double *y_vals_mat,
+double calculate_one_over_jacobian_at_a_point(double *x_vals_mat, double *y_vals_mat,
                                    int i, int j);
 void contravariant_velocities(double *U, double *V, double *x_vals_mat,
                               double *y_vals_mat, double *Q, int i, int j);
@@ -40,7 +40,7 @@ int main(int argc, char const *argv[])
 {
 /* declerations */
     char input_dir[MAXDIR], mesh_dir[MAXDIR], current_word[MAXWORD];
-    double *x_vals_mat, *y_vals_mat, *Q;
+    double *x_vals_mat, *y_vals_mat, *Q, *J_vals_mat;
 
 /* getting the input directory and mesh directory*/
     if (--argc != 2) {
@@ -97,6 +97,12 @@ int main(int argc, char const *argv[])
             y_vals_mat[offset2d(i_index, j_index, ni)] = 0;
         }
     }
+    J_vals_mat = (double *)malloc(sizeof(double) * ni * nj);
+    for (int i_index = 0; i_index < ni; i_index++) {   /* filling the matrix with zeros */
+        for (int j_index = 0; j_index < nj; j_index++) {
+            J_vals_mat[offset2d(i_index, j_index, ni)] = 0;
+        }
+    }
     Q = (double *)malloc(sizeof(double) * ni * nj * 4);
     for (int i_index = 0; i_index < ni; i_index++) {
         for (int j_index = 0; j_index < nj; j_index++) {
@@ -130,11 +136,20 @@ int main(int argc, char const *argv[])
     dprintD(environment_pressure);
     dprintD(delta_t);
     dprintD(Gamma);
+
+    // for (int i = 0; i < ni; i++) {
+    //     for (int j = 0; j < nj; j++) {
+    //         J_vals_mat[offset2d(i, j, ni)] = 1.0 / calculate_one_over_jacobian_at_a_point(x_vals_mat, y_vals_mat, i, j);
+    //     }
+    // }
+    // print_mat2D(J_vals_mat);
+
     printf("--------------------\n");
 
 /*------------------------------------------------------------*/
 
     initialize_flow_field(Q);
+
 
 /*------------------------------------------------------------*/
 
@@ -349,7 +364,7 @@ argument list:
 x_vals_mat - 1D array of the x valuse 
 y_vals_mat - 1D array of the y valuse 
 i, j - the points coordinates */
-double calculate_one_over_jacobian(double *x_vals_mat, double *y_vals_mat,
+double calculate_one_over_jacobian_at_a_point(double *x_vals_mat, double *y_vals_mat,
                                    int i, int j)
 {
     double dx_dxi = first_deriv(x_vals_mat, 'i', i, j);
@@ -370,7 +385,7 @@ i, j - the points coordinates */
 void contravariant_velocities(double *U, double *V, double *x_vals_mat,
                               double *y_vals_mat, double *Q, int i, int j)
 {
-    double J = calculate_one_over_jacobian(x_vals_mat, y_vals_mat, i, j);
+    double J = calculate_one_over_jacobian_at_a_point(x_vals_mat, y_vals_mat, i, j);
     double dx_dxi = first_deriv(x_vals_mat, 'i', i, j);
     double dx_deta = first_deriv(x_vals_mat, 'j', i, j);
     double dy_dxi = first_deriv(y_vals_mat, 'i', i, j);
