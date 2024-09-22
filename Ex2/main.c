@@ -16,39 +16,47 @@ void read_input(char *input_dir, char *mesh_dir, double *x_vals_mat,
                 double *y_vals_mat);
 void read_mesh_file(FILE *mesh_fp, double *x_vals_mat,
                    double *y_vals_mat);
+void read_input_file(FILE *fp);
 void read_mat_from_file(FILE *fp, double *des);
 void output_solution(char *dir, double *data);
 int offset2d(int i, int j, int ni);
 int offset3d(int i, int j, int k, int ni, int nj);
-void mat_print(double *data);
+void mat2D_print(double *data);
+double first_deriv(double *mat, char diraction, int i, int j);
+double second_deriv(double *mat, char diraction, int i, int j);
+double calculate_jacobian(double *x_vals_mat, double *y_vals_mat,
+                          int i, int j);
+void contravariant_velocities(double *U, double *V, double *x_vals_mat,
+                              double *y_vals_mat, double *Q, int i, int j);
 
 /* global variables */
-int ni, nj;
+int ni, nj, i_TEL, i_LE, i_TEU, j_TEL, j_LE, j_TEU;
+double Mach, angle_of_attack_deg, angle_of_attack_rad, density,
+environment_pressure, delta_t;
 
 int main(int argc, char const *argv[])
 {
-    /* declerations */
+/* declerations */
     char input_dir[MAXDIR], mesh_dir[MAXDIR], current_word[MAXWORD];
-    double *x_vals_mat, *y_vals_mat;
+    double *x_vals_mat, *y_vals_mat, *Q;
 
-
-    /* getting the input directory and mesh directory*/
+/* getting the input directory and mesh directory*/
     if (--argc != 2) {
-        fprintf(stderr, "ERROR: not right usage\nUsage: main 'input dir' 'mesh dir'\n");
+        fprintf(stderr, "%s:%d: [Error] not right usage... Usage: main 'input dir' 'mesh dir'\n", __FILE__, __LINE__);
         return -1;
     }
 
     strncpy(input_dir, (*(++argv)), MAXDIR);
 
     if (input_dir[MAXDIR-1] != '\0') {
-        fprintf(stderr, "Error: input too long\n");
+        fprintf(stderr, "%s:%d: [Error] input too long\n", __FILE__, __LINE__);
         return -1;
     }
 
     strncpy(mesh_dir, (*(++argv)), MAXDIR);
 
     if (mesh_dir[MAXDIR-1] != '\0') {
-        fprintf(stderr, "Error: input too long\n");
+        fprintf(stderr, "%s:%d: [Error] input too long\n", __FILE__, __LINE__);
         return -1;
     }
 
@@ -57,10 +65,10 @@ int main(int argc, char const *argv[])
 
 /*------------------------------------------------------------*/
 
-    /* getting ni, nj*/
+/* getting ni, nj*/
     FILE *mesh_fp = fopen(mesh_dir, "rt");
     if (!mesh_fp) {
-        fprintf(stderr, "Error opening input file: %s\n", strerror(errno));
+        fprintf(stderr, "%s:%d: [Error] opening input file: %s\n",__FILE__, __LINE__, strerror(errno));
         exit(1);
     }
     
@@ -71,7 +79,10 @@ int main(int argc, char const *argv[])
             fscanf(mesh_fp, "%d", &nj);
         }
     }
+    fclose(mesh_fp);
 
+/*------------------------------------------------------------*/
+/* allocating the matrices */
     x_vals_mat = (double *)malloc(sizeof(double) * ni * nj);
     for (int i_index = 0; i_index < ni; i_index++) {   /* filling the matrix with zeros */
         for (int j_index = 0; j_index < nj; j_index++) {
@@ -84,28 +95,44 @@ int main(int argc, char const *argv[])
             y_vals_mat[offset2d(i_index, j_index, ni)] = 0;
         }
     }
+    Q = (double *)malloc(sizeof(double) * ni * nj * 4);
+    for (int i_index = 0; i_index < ni; i_index++) {
+        for (int j_index = 0; j_index < nj; j_index++) {
+            for (int k_index = 0; k_index < 4; k_index++) {
+                Q[offset3d(i_index, j_index, k_index, ni, nj)] = 0;
+            }
+        }
+    }
 
 /*------------------------------------------------------------*/
 
     read_input(input_dir, mesh_dir, x_vals_mat, y_vals_mat);
 
-/*------------------------------------------------------------*/
-
-    /* Checking that I got the right input */
+/* Checking the input */
+    printf("--------------------\n");
     dprintINT(ni);
     dprintINT(nj);
     // printf("x_vals_mat\n");
-    // mat_print(x_vals_mat);
+    // mat2D_print(x_vals_mat);
     // printf("y_vals_mat\n");
-    // mat_print(y_vals_mat);
-
+    // mat2D_print(y_vals_mat);
+    dprintINT(i_TEL);
+    dprintINT(i_LE);
+    dprintINT(i_TEU);
+    dprintINT(j_TEL);
+    dprintINT(j_LE);
+    dprintINT(j_TEU);
+    dprintD(Mach);
+    dprintD(angle_of_attack_deg);
+    dprintD(density);
+    dprintD(environment_pressure);
+    dprintD(delta_t);
     printf("--------------------\n");
 
-    /*------------------------------------------------------------*/
+/*------------------------------------------------------------*/
 
     free(x_vals_mat);
     free(y_vals_mat);
-
 
     return 0;
 }
@@ -121,19 +148,18 @@ void read_input(char *input_dir, char *mesh_dir, double *x_vals_mat,
 {
     FILE *input_fp = fopen(input_dir, "rt");
     FILE *mesh_fp = fopen(mesh_dir, "rt");
-    char current_word[MAXWORD];
 
     if (!input_fp) {
-        fprintf(stderr, "Error opening input file: %s\n", strerror(errno));
+        fprintf(stderr, "%s:%d: [Error] failed opening input file: %s\n", __FILE__, __LINE__, strerror(errno));
         exit(1);
     }
     if (!mesh_fp) {
-        fprintf(stderr, "Error opening input file: %s\n", strerror(errno));
+        fprintf(stderr, "%s:%d: [Error] failed opening mesh file: %s\n", __FILE__, __LINE__, strerror(errno));
         exit(1);
     }
 
     read_mesh_file(mesh_fp, x_vals_mat, y_vals_mat);
-
+    read_input_file(input_fp);
 
     fclose(input_fp);
     fclose(mesh_fp);
@@ -155,6 +181,46 @@ void read_mesh_file(FILE *mesh_fp, double *x_vals_mat,
             read_mat_from_file(mesh_fp, x_vals_mat);
         } else if (!strcmp(current_word, "y_vals")) {
             read_mat_from_file(mesh_fp, y_vals_mat);
+        }
+    }
+}
+
+/* read input parameters from input file
+fp - file pointer */
+void read_input_file(FILE *fp)
+{
+    char current_word[MAXWORD];
+    float temp;
+
+    while(fscanf(fp, "%s", current_word) != EOF) {  
+        if (!strcmp(current_word, "Mach")) {
+            fscanf(fp, "%g", &temp);
+            Mach = (double)temp;
+        } else if (!strcmp(current_word, "angle_of_attack_deg")) {
+            fscanf(fp, "%g", &temp);
+            angle_of_attack_deg = (double)temp;
+            angle_of_attack_rad = PI*angle_of_attack_deg/180.0;
+        } else if (!strcmp(current_word, "density")) {
+            fscanf(fp, "%g", &temp);
+            density = (double)temp;
+        } else if (!strcmp(current_word, "environment_pressure")) {
+            fscanf(fp, "%g", &temp);
+            environment_pressure = (double)temp;
+        } else if (!strcmp(current_word, "delta_t")) {
+            fscanf(fp, "%g", &temp);
+            delta_t = (double)temp;
+        } else if (!strcmp(current_word, "i_TEL")) {
+            fscanf(fp, "%d", &i_TEL);
+        } else if (!strcmp(current_word, "i_LE")) {
+            fscanf(fp, "%d", &i_LE);
+        } else if (!strcmp(current_word, "i_TEU")) {
+            fscanf(fp, "%d", &i_TEU);
+        } else if (!strcmp(current_word, "j_TEL")) {
+            fscanf(fp, "%d", &j_TEL);
+        } else if (!strcmp(current_word, "j_LE")) {
+            fscanf(fp, "%d", &j_LE);
+        } else if (!strcmp(current_word, "j_TEU")) {
+            fscanf(fp, "%d", &j_TEU);
         }
     }
 }
@@ -196,7 +262,7 @@ int offset3d(int i, int j, int k, int ni, int nj)
     return (k * nj + j) * ni + i;
 }
 
-void mat_print(double *data)
+void mat2D_print(double *data)
 {
     int j_index, i_index;
     for (j_index = 0; j_index < nj; j_index++) {
@@ -206,4 +272,87 @@ void mat_print(double *data)
         printf("\n");
     }
     printf("\n");
+}
+
+/* return the second order first derivitive from the valuse in the mat matrix
+argument list:
+mat - 1D array of valuse
+diraction - i or j
+i, j - the points coordinates */
+double first_deriv(double *mat, char diraction, int i, int j)
+{
+    int j_min = 0, j_max = nj-1, i_min = 0, i_max = ni-1;
+
+    if (diraction == 'j') {
+        if (j == j_min || j == j_max) {
+            return 0;
+        }
+        return (mat[offset2d(i, j+1, i_max+1)] - mat[offset2d(i, j-1, i_max+1)]) / (2); /* second order first derivitive */
+    }
+    if (diraction == 'i') {
+        if (i == i_min || i == i_max) {
+            return 0;
+        }
+        return (mat[offset2d(i+1, j, i_max+1)] - mat[offset2d(i-1, j, i_max+1)]) / (2); /* second order first derivitive */
+    }
+    return NAN;
+}
+
+/* return the second order second derivitive from the valuse in the mat matrix
+argument list:
+mat - 1D array of valuse
+diraction - i or j
+i, j - the points coordinates */
+double second_deriv(double *mat, char diraction, int i, int j)
+{
+    int j_min = 0, j_max = nj-1, i_min = 0, i_max = ni-1;
+
+    if (diraction == 'j') {
+        if (j == j_min || j == j_max) {
+            return 0;
+        }
+        return (mat[offset2d(i, j+1, i_max+1)] -2*mat[offset2d(i, j, i_max+1)] + mat[offset2d(i, j-1, i_max+1)]) / (1); /* second order second derivitive */
+    }
+    if (diraction == 'i') {
+        if (i == i_min || i == i_max) {
+            return 0;
+        }
+        return (mat[offset2d(i+1, j, i_max+1)] -2*mat[offset2d(i, j, i_max+1)] + mat[offset2d(i-1, j, i_max+1)]) / (1); /* second order second derivitive */
+    }
+    return NAN;
+}
+
+/* calculating the jacobian in a single point
+argument list:
+x_vals_mat - 1D array of the x valuse 
+y_vals_mat - 1D array of the y valuse 
+i, j - the points coordinates */
+double calculate_jacobian(double *x_vals_mat, double *y_vals_mat, int i, int j)
+{
+    double dx_dxi = first_deriv(x_vals_mat, 'i', i, j);
+    double dx_deta = first_deriv(x_vals_mat, 'j', i, j);
+    double dy_dxi = first_deriv(y_vals_mat, 'i', i, j);
+    double dy_deta = first_deriv(y_vals_mat, 'j', i, j);
+    return 1.0 / (dx_dxi*dy_deta - dy_dxi*dx_deta);
+}
+
+void contravariant_velocities(double *U, double *V, double *x_vals_mat,
+                              double *y_vals_mat, double *Q, int i, int j)
+{
+    double J = calculate_jacobian(x_vals_mat, y_vals_mat, i, j);
+    double dx_dxi = first_deriv(x_vals_mat, 'i', i, j);
+    double dx_deta = first_deriv(x_vals_mat, 'j', i, j);
+    double dy_dxi = first_deriv(y_vals_mat, 'i', i, j);
+    double dy_deta = first_deriv(y_vals_mat, 'j', i, j);
+
+    double dxi_dx  =   J * dy_deta;
+    double dxi_dy  = - J * dx_deta;
+    double deta_dx = - J * dy_dxi;
+    double deta_dy =   J * dx_dxi;
+
+    double u = Q[offset3d(i, j, 1, ni, nj)] / Q[offset3d(i, j, 0, ni, nj)]; /* rho*u / rho */
+    double v = Q[offset3d(i, j, 2, ni, nj)] / Q[offset3d(i, j, 0, ni, nj)]; /* rho*v / rho */
+
+    *U = dxi_dx  * u + dxi_dy  * v;
+    *V = deta_dx * u + deta_dy * v;
 }

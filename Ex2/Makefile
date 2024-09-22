@@ -21,6 +21,7 @@ run_mesh_generate:
 clean_mesh_generate:
 	rm mesh_generate
 
+##########################################################
 test:
 	gcc -Wall -Wextra ./test.c -lm -o test
 	./test
