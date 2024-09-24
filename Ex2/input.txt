@@ -1,22 +1,22 @@
-i_TEL
+i_tel
 11
 
-i_LE
+i_le
 25
 
-i_TEU
+i_teu
 39
 
-j_TEL
+j_tel
 0
 
-j_LE
+j_le
 0
 
-j_TEU
+j_teu
 0
 
-Mach
+mach
 0.3
 
 angle_of_attack_deg
@@ -29,7 +29,10 @@ environment_pressure
 101325
 
 delta_t
-0.00001
+0.0000001
 
-Gamma
+gamma
 1.4
+
+epse
+0.06
