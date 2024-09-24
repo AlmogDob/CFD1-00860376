@@ -44,6 +44,7 @@ void initialize_flow_field(double *Q);
 void RHS(double *S, double *W, double *Q, double *x_vals_mat, double *y_vals_mat);
 void advance_Q(double *next_Q, double *current_Q ,double *S, double *x_vals_mat,
                double *y_vals_mat);
+void copy_3Dmat_to_3Dmat(double *dst, double *src);
 
 /* global variables */
 int ni, nj, max_ni_nj, i_TEL, i_LE, i_TEU, j_TEL, j_LE, j_TEU;
@@ -175,13 +176,13 @@ int main(int argc, char const *argv[])
     dprintD(Gamma);
     dprintINT(max_ni_nj);
 
-    for (int i = 0; i < ni; i++) {
-        for (int j = 0; j < nj; j++) {
-            J_vals_mat[offset2d(i, j, ni)] = 1.0 / calculate_one_over_jacobian_at_a_point(x_vals_mat, y_vals_mat, i, j);
-            // J_vals_mat[offset2d(i, j, ni)] = i + j;
-        }
-    }
-    print_mat2D(J_vals_mat);
+    // for (int i = 0; i < ni; i++) {
+    //     for (int j = 0; j < nj; j++) {
+    //         J_vals_mat[offset2d(i, j, ni)] = 1.0 / calculate_one_over_jacobian_at_a_point(x_vals_mat, y_vals_mat, i, j);
+    //         // J_vals_mat[offset2d(i, j, ni)] = i + j;
+    //     }
+    // }
+    // print_mat2D(J_vals_mat);
 
     printf("--------------------\n");
 
@@ -190,10 +191,13 @@ int main(int argc, char const *argv[])
     initialize_flow_field(current_Q);
 
     
-    RHS(S, W, current_Q, x_vals_mat, y_vals_mat);
-    advance_Q(next_Q, current_Q, S, x_vals_mat, y_vals_mat);
+    for (int i = 0; i < 10; i++) {
+        RHS(S, W, current_Q, x_vals_mat, y_vals_mat);
+        advance_Q(next_Q, current_Q, S, x_vals_mat, y_vals_mat);
+        copy_3Dmat_to_3Dmat(current_Q, next_Q);
+    }
     
-    // int layer = 3;
+    int layer = 0;
     // print_layer_of_mat3D(current_Q, layer);
     // print_layer_of_mat3D(next_Q, layer);
 
@@ -369,16 +373,20 @@ double first_deriv(double *mat, char diraction, int i, int j)
     int j_min = 0, j_max = nj-1, i_min = 0, i_max = ni-1;
 
     if (diraction == 'j') {
-        if (j == j_min || j == j_max) {
-            return 0;
+        if (j == j_min) {
+            return mat[offset2d(i, j+1, ni)] - mat[offset2d(i, j, ni)]; /* (forward) first order first derivitive */
+        } else if (j == j_max) {
+            return mat[offset2d(i, j, ni)] - mat[offset2d(i, j-1, ni)]; /* (backward) first order first derivitive */
         }
-        return (mat[offset2d(i, j+1, i_max+1)] - mat[offset2d(i, j-1, i_max+1)]) / (2); /* second order first derivitive */
+        return (mat[offset2d(i, j+1, ni)] - mat[offset2d(i, j-1, ni)]) / (2); /* (central) second order first derivitive */
     }
     if (diraction == 'i') {
-        if (i == i_min || i == i_max) {
-            return 0;
+        if (i == i_min) {
+            return mat[offset2d(i+1, j, ni)] - mat[offset2d(i, j, ni)]; /* (forward) first order first derivitive */
+        } else if (i == i_max) {
+            return mat[offset2d(i, j, ni)] - mat[offset2d(i-1, j, ni)]; /* (backward) first order first derivitive */
         }
-        return (mat[offset2d(i+1, j, i_max+1)] - mat[offset2d(i-1, j, i_max+1)]) / (2); /* second order first derivitive */
+        return (mat[offset2d(i+1, j, ni)] - mat[offset2d(i-1, j, ni)]) / (2); /* (central) second order first derivitive */
     }
     return NAN;
 }
@@ -388,24 +396,24 @@ argument list:
 mat - 1D array of valuse
 diraction - i or j
 i, j - the points coordinates */
-double second_deriv(double *mat, char diraction, int i, int j)
-{
-    int j_min = 0, j_max = nj-1, i_min = 0, i_max = ni-1;
+// double second_deriv(double *mat, char diraction, int i, int j)
+// {
+//     int j_min = 0, j_max = nj-1, i_min = 0, i_max = ni-1;
 
-    if (diraction == 'j') {
-        if (j == j_min || j == j_max) {
-            return 0;
-        }
-        return (mat[offset2d(i, j+1, i_max+1)] -2*mat[offset2d(i, j, i_max+1)] + mat[offset2d(i, j-1, i_max+1)]) / (1); /* second order second derivitive */
-    }
-    if (diraction == 'i') {
-        if (i == i_min || i == i_max) {
-            return 0;
-        }
-        return (mat[offset2d(i+1, j, i_max+1)] -2*mat[offset2d(i, j, i_max+1)] + mat[offset2d(i-1, j, i_max+1)]) / (1); /* second order second derivitive */
-    }
-    return NAN;
-}
+//     if (diraction == 'j') {
+//         if (j == j_min || j == j_max) {
+//             return 0;
+//         }
+//         return (mat[offset2d(i, j+1, i_max+1)] -2*mat[offset2d(i, j, i_max+1)] + mat[offset2d(i, j-1, i_max+1)]) / (1); /* (central) second order second derivitive */
+//     }
+//     if (diraction == 'i') {
+//         if (i == i_min || i == i_max) {
+//             return 0;
+//         }
+//         return (mat[offset2d(i+1, j, i_max+1)] -2*mat[offset2d(i, j, i_max+1)] + mat[offset2d(i-1, j, i_max+1)]) / (1); /* (central) second order second derivitive */
+//     }
+//     return NAN;
+// }
 
 /* calculating the jacobian in a single point
 argument list:
@@ -641,6 +649,18 @@ void advance_Q(double *next_Q, double *current_Q ,double *S, double *x_vals_mat,
                 } else {
                     next_Q[index] = current_Q[index];
                 }
+            }
+        }
+    }
+}
+
+void copy_3Dmat_to_3Dmat(double *dst, double *src)
+{
+    for (int i = 0; i < ni; i++) {
+        for (int j = 0; j < nj; j++) {
+            for (int k = 0; k < 4; k++) {
+                int index = offset3d(i, j, k, ni, nj);
+                dst[index] = src[index];
             }
         }
     }

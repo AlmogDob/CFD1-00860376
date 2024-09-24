@@ -17,7 +17,7 @@ j_TEU
 0
 
 Mach
-0.9
+0.3
 
 angle_of_attack_deg
 0
@@ -29,7 +29,7 @@ environment_pressure
 101325
 
 delta_t
-0.001
+0.00001
 
 Gamma
 1.4
