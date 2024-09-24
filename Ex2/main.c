@@ -7,10 +7,10 @@
 #define MAXDIR 1000
 #define MAXWORD MAXDIR
 #define PI M_PI
-#define dprintSTRING(expr) printf(#expr " = %s\n", expr)    /* macro for easy debuging*/
-#define dprintINT(expr) printf(#expr " = %d\n", expr)
-#define dprintF(expr) printf(#expr " = %g\n", expr)
-#define dprintD(expr) printf(#expr " = %g\n", expr)
+#define dprintSTRING(expr) do{printf("%d: ", __LINE__); printf(#expr " = %s\n", expr);} while(0)   /* macro for easy debuging*/
+#define dprintINT(expr) do{printf("%d: ", __LINE__); printf(#expr " = %d\n", expr);} while(0)     /* macro for easy debuging*/
+#define dprintF(expr) do{printf("%d: ", __LINE__); printf(#expr " = %g\n", expr);} while(0)     /* macro for easy debuging*/
+#define dprintD(expr) do{printf("%d: ", __LINE__); printf(#expr " = %g\n", expr);} while(0)     /* macro for easy debuging*/
 
 void read_input(char *input_dir, char *mesh_dir, double *x_vals_mat,
                 double *y_vals_mat);
@@ -41,10 +41,12 @@ void calculate_F_hat_at_a_point(double *F0, double *F1, double *F2,
                                 double *y_vals_mat, double *Q, int i,
                                 int j);                               
 void initialize_flow_field(double *Q);
-void RHS(double *S, double *Q, double *x_vals_mat, double *y_vals_mat);
+void RHS(double *S, double *W, double *Q, double *x_vals_mat, double *y_vals_mat);
+void advance_Q(double *next_Q, double *current_Q ,double *S, double *x_vals_mat,
+               double *y_vals_mat);
 
 /* global variables */
-int ni, nj, i_TEL, i_LE, i_TEU, j_TEL, j_LE, j_TEU;
+int ni, nj, max_ni_nj, i_TEL, i_LE, i_TEU, j_TEL, j_LE, j_TEU;
 double Mach, angle_of_attack_deg, angle_of_attack_rad, density,
 environment_pressure, delta_t, Gamma;
 
@@ -52,8 +54,7 @@ int main(int argc, char const *argv[])
 {
 /* declerations */
     char input_dir[MAXDIR], mesh_dir[MAXDIR], current_word[MAXWORD];
-    double *x_vals_mat, *y_vals_mat, *J_vals_mat, *Q, *S, *W;
-    int max_ni_nj = (int)fmax((double)ni, (double)nj);
+    double *x_vals_mat, *y_vals_mat, *J_vals_mat, *current_Q, *next_Q, *S, *W;
 
 /* getting the input directory and mesh directory*/
     if (--argc != 2) {
@@ -95,6 +96,7 @@ int main(int argc, char const *argv[])
         }
     }
     fclose(mesh_fp);
+    max_ni_nj = (int)fmax((double)ni, (double)nj);
 
 /*------------------------------------------------------------*/
 /* allocating the matrices */
@@ -118,15 +120,23 @@ int main(int argc, char const *argv[])
     }
     W = (double *)malloc(sizeof(double) * max_ni_nj * 4);
     for (int i_index = 0; i_index < max_ni_nj; i_index++) {   /* filling the matrix with zeros */
-        for (int j_index = 0; j_index < max_ni_nj; j_index++) {
+        for (int j_index = 0; j_index < 4; j_index++) {
             W[offset2d(i_index, j_index, ni)] = 0;
         }
     }
-    Q = (double *)malloc(sizeof(double) * ni * nj * 4);
+    current_Q = (double *)malloc(sizeof(double) * ni * nj * 4);
     for (int i_index = 0; i_index < ni; i_index++) {   /* filling the matrix with zeros */
         for (int j_index = 0; j_index < nj; j_index++) {
             for (int k_index = 0; k_index < 4; k_index++) {
-                Q[offset3d(i_index, j_index, k_index, ni, nj)] = 0;
+                current_Q[offset3d(i_index, j_index, k_index, ni, nj)] = 0;
+            }
+        }
+    }
+    next_Q = (double *)malloc(sizeof(double) * ni * nj * 4);
+    for (int i_index = 0; i_index < ni; i_index++) {   /* filling the matrix with zeros */
+        for (int j_index = 0; j_index < nj; j_index++) {
+            for (int k_index = 0; k_index < 4; k_index++) {
+                next_Q[offset3d(i_index, j_index, k_index, ni, nj)] = 0;
             }
         }
     }
@@ -163,21 +173,29 @@ int main(int argc, char const *argv[])
     dprintD(environment_pressure);
     dprintD(delta_t);
     dprintD(Gamma);
+    dprintINT(max_ni_nj);
 
-    // for (int i = 0; i < ni; i++) {
-    //     for (int j = 0; j < nj; j++) {
-    //         J_vals_mat[offset2d(i, j, ni)] = 1.0 / calculate_one_over_jacobian_at_a_point(x_vals_mat, y_vals_mat, i, j);
-    //         // J_vals_mat[offset2d(i, j, ni)] = i + j;
-    //     }
-    // }
-    // print_mat2D(J_vals_mat);
+    for (int i = 0; i < ni; i++) {
+        for (int j = 0; j < nj; j++) {
+            J_vals_mat[offset2d(i, j, ni)] = 1.0 / calculate_one_over_jacobian_at_a_point(x_vals_mat, y_vals_mat, i, j);
+            // J_vals_mat[offset2d(i, j, ni)] = i + j;
+        }
+    }
+    print_mat2D(J_vals_mat);
 
     printf("--------------------\n");
 
 /*------------------------------------------------------------*/
 
-    initialize_flow_field(Q);
+    initialize_flow_field(current_Q);
 
+    
+    RHS(S, W, current_Q, x_vals_mat, y_vals_mat);
+    advance_Q(next_Q, current_Q, S, x_vals_mat, y_vals_mat);
+    
+    // int layer = 3;
+    // print_layer_of_mat3D(current_Q, layer);
+    // print_layer_of_mat3D(next_Q, layer);
 
 /*------------------------------------------------------------*/
 
@@ -476,10 +494,17 @@ void calculate_E_hat_at_a_point(double *E0, double *E1, double *E2,
     energy = calculate_energy();
     p = environment_pressure;
 
-    *E0 = one_over_J * density * U;
-    *E1 = one_over_J * (density * u * U + dxi_dx * p); 
-    *E2 = one_over_J * (density * v * U + dxi_dy * p);
-    *E3 = one_over_J * (energy + p) * U;
+    if (!one_over_J) {
+        *E0 = 0;
+        *E1 = 0;
+        *E2 = 0;
+        *E3 = 0;
+    } else {
+        *E0 = one_over_J * density * U;
+        *E1 = one_over_J * (density * u * U + dxi_dx * p); 
+        *E2 = one_over_J * (density * v * U + dxi_dy * p);
+        *E3 = one_over_J * (energy + p) * U;
+    }
 
 }
 
@@ -501,10 +526,17 @@ void calculate_F_hat_at_a_point(double *F0, double *F1, double *F2,
     energy = calculate_energy();
     p = environment_pressure;
 
-    *F0 = one_over_J * V;
-    *F1 = one_over_J * (density * u * V + deta_dx * p);
-    *F2 = one_over_J * (density * v * V + deta_dy * p);
-    *F3 = one_over_J * (energy + p) * V;
+    if (!one_over_J) {
+        *F0 = 0;
+        *F1 = 0;
+        *F2 = 0;
+        *F3 = 0;
+    } else {
+        *F0 = one_over_J * V;
+        *F1 = one_over_J * (density * u * V + deta_dx * p);
+        *F2 = one_over_J * (density * v * V + deta_dy * p);
+        *F3 = one_over_J * (energy + p) * V;
+    }
 
 }
 
@@ -531,16 +563,85 @@ void initialize_flow_field(double *Q)
     }
 }
 
-
-void RHS(double *S, double *Q, double *x_vals_mat, double *y_vals_mat)
+void RHS(double *S, double *W, double *Q, double *x_vals_mat, double *y_vals_mat)
 {
-    /* zeroing S*/
-    for (int i_index = 0; i_index < ni; i_index++) {   
-        for (int j_index = 0; j_index < nj; j_index++) {
-            for (int k_index = 0; k_index < 4; k_index++) {
-                S[offset3d(i_index, j_index, k_index, ni, nj)] = 0;
+    int i, j, k;
+
+    /* zeroing S and W*/
+    for (i = 0; i < ni; i++) {   
+        for (j = 0; j < nj; j++) {
+            for (k = 0; k < 4; k++) {
+                S[offset3d(i, j, k, ni, nj)] = 0;
+            }
+        }
+    }
+    for (i = 0; i < max_ni_nj; i++) {
+        for (j = 0; j < 4; j++) {
+            W[offset2d(i, j, max_ni_nj)] = 0;
+        }
+    }
+
+    /* xi direction (constant j) */
+    for (j = 1; j < nj - 1; j++) {
+        for (i = 0; i < ni; i++) {
+            calculate_E_hat_at_a_point(&W[offset2d(i, 0, max_ni_nj)],
+                                       &W[offset2d(i, 1, max_ni_nj)],
+                                       &W[offset2d(i, 2, max_ni_nj)],
+                                       &W[offset2d(i, 3, max_ni_nj)],
+                                       x_vals_mat, y_vals_mat, Q, i, j);
+        }
+
+        for (i = 1; i < ni - 1; i++) {
+            for (k = 0; k < 4; k++) {
+                S[offset3d(i, j, k, ni, nj)] += -delta_t * 0.5 * (W[offset2d(i+1, k, max_ni_nj)] - W[offset2d(i-1, k, max_ni_nj)]);
+            }
+        }
+    } 
+
+    /* eta direction (constant i) */
+    for (i = 1; i < ni - 1; i++) {
+        for (j = 0; j < nj; j++) {
+            calculate_F_hat_at_a_point(&W[offset2d(j, 0, max_ni_nj)],
+                                       &W[offset2d(j, 1, max_ni_nj)],
+                                       &W[offset2d(j, 2, max_ni_nj)],
+                                       &W[offset2d(j, 3, max_ni_nj)],
+                                       x_vals_mat, y_vals_mat, Q, i, j);
+        }
+
+        for (j = 1; j < nj - 1; j++) {
+            for (k = 0; k < 4; k++) {
+                S[offset3d(i, j, k, ni, nj)] += -delta_t * 0.5 * (W[offset2d(j+1, k, max_ni_nj)] - W[offset2d(j-1, k, max_ni_nj)]);
             }
         }
     }
 
+    // for (j = 0; j < 4; j++) {
+    //     for (i = 0; i < max_ni_nj; i++) {
+    //         printf("%g ", W[offset2d(i, 3-j, max_ni_nj)]);
+    //     }
+    //     printf("\n");
+    // }
+
+    // print_layer_of_mat3D(S, 2);
+
+}
+
+void advance_Q(double *next_Q, double *current_Q ,double *S, double *x_vals_mat,
+               double *y_vals_mat)
+{
+    double J;
+
+    for (int i = 0; i < ni; i++) {
+        for (int j = 0; j < nj; j++) {
+            J = 1.0 / calculate_one_over_jacobian_at_a_point(x_vals_mat, y_vals_mat, i, j);
+            for (int k = 0; k < 4; k++ ) {
+                int index = offset3d(i, j, k, ni, nj);
+                if (S[index]) {
+                    next_Q[index] = current_Q[index] + S[index] * J;
+                } else {
+                    next_Q[index] = current_Q[index];
+                }
+            }
+        }
+    }
 }
