@@ -72,13 +72,14 @@ double calculate_one_over_jacobian_at_a_point(double *x_vals_mat,
 void contravariant_velocities(double *U, double *V, double *x_vals_mat,
                               double *y_vals_mat, double *Q, int i, int j);
 void calculate_u_and_v(double *u, double *v, double *Q, int i, int j);
-double calculate_energy(void);
+void calculate_p_and_rho(double *p, double *rho, double *Q, int i, int j);
+double calculate_energy(double p, double u, double v, double rho);
 void calculate_E_hat_at_a_point(double *E0, double *E1, double *E2,
                                 double *E3, double *x_vals_mat,
                                 double *y_vals_mat, double *Q, int i,
                                 int j);
 void calculate_F_hat_at_a_point(double *F0, double *F1, double *F2,
-                                double *E3, double *x_vals_mat,
+                                double *F3, double *x_vals_mat,
                                 double *y_vals_mat, double *Q, int i,
                                 int j);                               
 void initialize_flow_field(double *Q);
@@ -93,10 +94,11 @@ int smooth(double *q, double *s, double *jac, double *xx, double *xy,
            double *yx, double *yy, int id, int jd, double *s2, 
            double *rspec, double *qv, double *dd,
            double epse, double gamma, double fsmach, double dt);
+void apply_BC(double *Q, double *x_vals_mat, double *y_vals_mat);
 
 /* global variables */
 int ni, nj, max_ni_nj, i_TEL, i_LE, i_TEU, j_TEL, j_LE, j_TEU;
-double Mach, angle_of_attack_deg, angle_of_attack_rad, density,
+double Mach_inf, angle_of_attack_deg, angle_of_attack_rad, density,
 environment_pressure, delta_t, Gamma, epse;
 
 int main(int argc, char const *argv[])
@@ -266,7 +268,7 @@ int main(int argc, char const *argv[])
     dprintINT(j_TEL);
     dprintINT(j_LE);
     dprintINT(j_TEU);
-    dprintD(Mach);
+    dprintD(Mach_inf);
     dprintD(angle_of_attack_deg);
     dprintD(density);
     dprintD(environment_pressure);
@@ -291,7 +293,7 @@ int main(int argc, char const *argv[])
     copy_3Dmat_to_3Dmat(first_Q, current_Q);
 
     
-    for (int i = 0; i < 100; i++) {
+    for (int i = 0; i < 3; i++) {
         RHS(S, W, current_Q, x_vals_mat, y_vals_mat, J_vals_mat, dxi_dx_mat,
             dxi_dy_mat, deta_dx_mat, deta_dy_mat, s2, rspec, qv, dd);
         advance_Q(next_Q, current_Q, S, x_vals_mat, y_vals_mat);
@@ -300,10 +302,8 @@ int main(int argc, char const *argv[])
     
     // int layer = 1;
     // print_layer_of_mat3D(first_Q, layer);
-    // layer = 2;
-    // print_layer_of_mat3D(first_Q, layer);
+    // print_layer_of_mat3D(current_Q, layer);
 
-    print_mat2D(dxi_dy_mat);
 
 /*------------------------------------------------------------*/
 
@@ -382,9 +382,9 @@ void read_input_file(FILE *fp)
     float temp;
 
     while(fscanf(fp, "%s", current_word) != EOF) {  
-        if (!strcmp(current_word, "Mach")) {
+        if (!strcmp(current_word, "Mach_inf")) {
             fscanf(fp, "%g", &temp);
-            Mach = (double)temp;
+            Mach_inf = (double)temp;
         } else if (!strcmp(current_word, "angle_of_attack_deg")) {
             fscanf(fp, "%g", &temp);
             angle_of_attack_deg = (double)temp;
@@ -591,16 +591,30 @@ void calculate_u_and_v(double *u, double *v, double *Q, int i, int j)
     *v = Q[offset3d(i, j, 2, ni, nj)] / Q[offset3d(i, j, 0, ni, nj)]; /* rho*v / rho */
 }
 
-double calculate_energy(void)
+void calculate_p_and_rho(double *p, double *rho, double *Q, int i, int j)
 {
-    double p, speed_of_sound, velocity, internal_energy, energy;
+    double u_inf, v_inf, u, v, speed_of_sound, velocity, temp, rho_inf;
 
-    p = environment_pressure;
-    speed_of_sound = sqrt(Gamma * p / density);
+    rho_inf = Q[offset3d(i, j, 0, ni, nj)];
+    speed_of_sound = sqrt(Gamma * environment_pressure / rho_inf);
 
-    velocity = Mach * speed_of_sound;
-    internal_energy = p / (Gamma - 1) / density;
-    energy = density * internal_energy + density * velocity * velocity / 2;
+    velocity = Mach_inf * speed_of_sound;
+    u_inf = velocity * cos(angle_of_attack_rad);
+    v_inf = velocity * sin(angle_of_attack_rad);
+
+    calculate_u_and_v(&u, &v, Q, i, j);
+
+    temp = (1 - (Gamma - 1) * 0.5 * Mach_inf * Mach_inf * ((u * u + v * v) / (u_inf * u_inf + v_inf * v_inf) - 1));
+    *p = environment_pressure * pow(temp, Gamma/(Gamma-1));
+    *rho = density * pow(temp, 1/(Gamma - 1));
+}
+
+double calculate_energy(double p, double u, double v, double rho)
+{
+    double internal_energy, energy;
+
+    internal_energy = p / (Gamma - 1) / rho;
+    energy = rho * internal_energy + rho * (u * u + v * v) / 2;
     return energy;
 }
 
@@ -610,17 +624,17 @@ void calculate_E_hat_at_a_point(double *E0, double *E1, double *E2,
                                 int j)
 {
     double u, v, U, V, one_over_J, dx_deta, dy_deta, dxi_dx, dxi_dy,
-    energy, p;
+    energy, p, rho;
 
     calculate_u_and_v(&u, &v, Q, i, j);
+    calculate_p_and_rho(&p, &rho, Q, i, j);
     contravariant_velocities(&U, &V, x_vals_mat, y_vals_mat, Q, i, j);
     one_over_J = calculate_one_over_jacobian_at_a_point(x_vals_mat, y_vals_mat, i, j);
     dx_deta = first_deriv(x_vals_mat, 'j', i, j);
     dy_deta = first_deriv(y_vals_mat, 'j', i, j);
     dxi_dx  =   1 / one_over_J * dy_deta;
     dxi_dy  = - 1 / one_over_J * dx_deta;
-    energy = calculate_energy();
-    p = environment_pressure;
+    energy = calculate_energy(p, u, v, rho);
 
     if (!one_over_J) {
         *E0 = 0;
@@ -642,17 +656,17 @@ void calculate_F_hat_at_a_point(double *F0, double *F1, double *F2,
                                 int j)
 {
     double u, v, U, V, one_over_J, dx_dxi, dy_dxi, deta_dx, deta_dy,
-    energy, p;
+    energy, p, rho;
 
     calculate_u_and_v(&u, &v, Q, i, j);
+    calculate_p_and_rho(&p, &rho, Q, i, j);
     contravariant_velocities(&U, &V, x_vals_mat, y_vals_mat, Q, i, j);  
     one_over_J = calculate_one_over_jacobian_at_a_point(x_vals_mat, y_vals_mat, i, j);
     dx_dxi = first_deriv(x_vals_mat, 'i', i, j);
     dy_dxi = first_deriv(y_vals_mat, 'i', i, j);
     deta_dx = - 1 / one_over_J * dy_dxi;
     deta_dy =   1 / one_over_J * dx_dxi;
-    energy = calculate_energy();
-    p = environment_pressure;
+    energy = calculate_energy(p, u, v, rho);
 
     if (!one_over_J) {
         *F0 = 0;
@@ -670,22 +684,23 @@ void calculate_F_hat_at_a_point(double *F0, double *F1, double *F2,
 
 void initialize_flow_field(double *Q)
 {
-    double u, v, energy, p, speed_of_sound, velocity;
+    double u, v, energy, p, rho, speed_of_sound, velocity;
 
     p = environment_pressure;
-    speed_of_sound = sqrt(Gamma * p / density);
+    rho = density;
+    speed_of_sound = sqrt(Gamma * p / rho);
 
-    velocity = Mach * speed_of_sound;
+    velocity = Mach_inf * speed_of_sound;
     u = velocity * cos(angle_of_attack_rad);
     v = velocity * sin(angle_of_attack_rad);
 
-    energy = calculate_energy();
+    energy = calculate_energy(p, u, v, rho);
 
     for (int i = 0; i < ni; i++) {
         for (int j = 0; j < nj; j++) {
-            Q[offset3d(i, j, 0, ni, nj)] = density;
-            Q[offset3d(i, j, 1, ni, nj)] = density * u;
-            Q[offset3d(i, j, 2, ni, nj)] = density * v;
+            Q[offset3d(i, j, 0, ni, nj)] = rho;
+            Q[offset3d(i, j, 1, ni, nj)] = rho * u;
+            Q[offset3d(i, j, 2, ni, nj)] = rho * v;
             Q[offset3d(i, j, 3, ni, nj)] = energy;
         }
     }
@@ -697,8 +712,7 @@ void RHS(double *S, double *W, double *Q, double *x_vals_mat, double *y_vals_mat
          double *qv, double *dd)
 {
     int i, j, k, index, J;
-    double dx_dxi, dx_deta, dy_dxi, dy_deta, dxi_dx, dxi_dy, deta_dx,
-    deta_dy;
+    double dx_dxi, dx_deta, dy_dxi, dy_deta;
 
     /* zeroing S and W*/
     for (i = 0; i < ni; i++) {   
@@ -771,7 +785,7 @@ void RHS(double *S, double *W, double *Q, double *x_vals_mat, double *y_vals_mat
     }
 
     smooth(Q, S, J_vals_mat, dxi_dx_mat, dxi_dy_mat, deta_dx_mat, deta_dy_mat,
-           ni, nj, s2, rspec, qv, dd, epse, Gamma, Mach, delta_t);
+           ni, nj, s2, rspec, qv, dd, epse, Gamma, Mach_inf, delta_t);
 
     // for (j = 0; j < 4; j++) {
     //     for (i = 0; i < max_ni_nj; i++) {

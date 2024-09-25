@@ -16,7 +16,7 @@ j_le
 j_teu
 0
 
-mach
+Mach_inf
 0.3
 
 angle_of_attack_deg
@@ -29,9 +29,9 @@ environment_pressure
 101325
 
 delta_t
-0.0000001
+0.000001
 
-gamma
+Gamma
 1.4
 
 epse
