@@ -72,7 +72,7 @@ double calculate_one_over_jacobian_at_a_point(double *x_vals_mat,
 void contravariant_velocities(double *U, double *V, double *x_vals_mat,
                               double *y_vals_mat, double *Q, int i, int j);
 void calculate_u_and_v(double *u, double *v, double *Q, int i, int j);
-void calculate_p_and_rho(double *p, double *rho, double *Q, int i, int j);
+double calculate_p(double energy, double rho, double u, double v);
 double calculate_energy(double p, double u, double v, double rho);
 void calculate_E_hat_at_a_point(double *E0, double *E1, double *E2,
                                 double *E3, double *x_vals_mat,
@@ -293,18 +293,20 @@ int main(int argc, char const *argv[])
     copy_3Dmat_to_3Dmat(first_Q, current_Q);
 
     
-    for (int i = 0; i < 3; i++) {
+    for (int iteration = 0; iteration < 1; iteration++) {
         RHS(S, W, current_Q, x_vals_mat, y_vals_mat, J_vals_mat, dxi_dx_mat,
             dxi_dy_mat, deta_dx_mat, deta_dy_mat, s2, rspec, qv, dd);
         advance_Q(next_Q, current_Q, S, x_vals_mat, y_vals_mat);
         copy_3Dmat_to_3Dmat(current_Q, next_Q);
+        apply_BC(current_Q, x_vals_mat, y_vals_mat);
+        dprintINT(iteration);
     }
     
-    // int layer = 1;
-    // print_layer_of_mat3D(first_Q, layer);
-    // print_layer_of_mat3D(current_Q, layer);
+    int layer = 2;
+    print_layer_of_mat3D(first_Q, layer);
+    print_layer_of_mat3D(current_Q, layer);
 
-
+    print_mat2D(deta_dy_mat);
 /*------------------------------------------------------------*/
 
     free(x_vals_mat);
@@ -591,22 +593,9 @@ void calculate_u_and_v(double *u, double *v, double *Q, int i, int j)
     *v = Q[offset3d(i, j, 2, ni, nj)] / Q[offset3d(i, j, 0, ni, nj)]; /* rho*v / rho */
 }
 
-void calculate_p_and_rho(double *p, double *rho, double *Q, int i, int j)
+double calculate_p(double energy, double rho, double u, double v)
 {
-    double u_inf, v_inf, u, v, speed_of_sound, velocity, temp, rho_inf;
-
-    rho_inf = Q[offset3d(i, j, 0, ni, nj)];
-    speed_of_sound = sqrt(Gamma * environment_pressure / rho_inf);
-
-    velocity = Mach_inf * speed_of_sound;
-    u_inf = velocity * cos(angle_of_attack_rad);
-    v_inf = velocity * sin(angle_of_attack_rad);
-
-    calculate_u_and_v(&u, &v, Q, i, j);
-
-    temp = (1 - (Gamma - 1) * 0.5 * Mach_inf * Mach_inf * ((u * u + v * v) / (u_inf * u_inf + v_inf * v_inf) - 1));
-    *p = environment_pressure * pow(temp, Gamma/(Gamma-1));
-    *rho = density * pow(temp, 1/(Gamma - 1));
+    return (Gamma - 1) * (energy - 0.5 * rho * (u * u + v * v));
 }
 
 double calculate_energy(double p, double u, double v, double rho)
@@ -627,14 +616,15 @@ void calculate_E_hat_at_a_point(double *E0, double *E1, double *E2,
     energy, p, rho;
 
     calculate_u_and_v(&u, &v, Q, i, j);
-    calculate_p_and_rho(&p, &rho, Q, i, j);
     contravariant_velocities(&U, &V, x_vals_mat, y_vals_mat, Q, i, j);
     one_over_J = calculate_one_over_jacobian_at_a_point(x_vals_mat, y_vals_mat, i, j);
     dx_deta = first_deriv(x_vals_mat, 'j', i, j);
     dy_deta = first_deriv(y_vals_mat, 'j', i, j);
     dxi_dx  =   1 / one_over_J * dy_deta;
     dxi_dy  = - 1 / one_over_J * dx_deta;
-    energy = calculate_energy(p, u, v, rho);
+    energy = Q[offset3d(i, j, 3, ni, nj)];
+    rho = Q[offset3d(i, j, 0, ni, nj)];
+    p = calculate_p(energy, rho, u, v);
 
     if (!one_over_J) {
         *E0 = 0;
@@ -642,9 +632,9 @@ void calculate_E_hat_at_a_point(double *E0, double *E1, double *E2,
         *E2 = 0;
         *E3 = 0;
     } else {
-        *E0 = one_over_J * density * U;
-        *E1 = one_over_J * (density * u * U + dxi_dx * p); 
-        *E2 = one_over_J * (density * v * U + dxi_dy * p);
+        *E0 = one_over_J * rho * U;
+        *E1 = one_over_J * (rho * u * U + dxi_dx * p); 
+        *E2 = one_over_J * (rho * v * U + dxi_dy * p);
         *E3 = one_over_J * (energy + p) * U;
     }
 
@@ -659,14 +649,15 @@ void calculate_F_hat_at_a_point(double *F0, double *F1, double *F2,
     energy, p, rho;
 
     calculate_u_and_v(&u, &v, Q, i, j);
-    calculate_p_and_rho(&p, &rho, Q, i, j);
     contravariant_velocities(&U, &V, x_vals_mat, y_vals_mat, Q, i, j);  
     one_over_J = calculate_one_over_jacobian_at_a_point(x_vals_mat, y_vals_mat, i, j);
     dx_dxi = first_deriv(x_vals_mat, 'i', i, j);
     dy_dxi = first_deriv(y_vals_mat, 'i', i, j);
     deta_dx = - 1 / one_over_J * dy_dxi;
     deta_dy =   1 / one_over_J * dx_dxi;
-    energy = calculate_energy(p, u, v, rho);
+    energy = Q[offset3d(i, j, 3, ni, nj)];
+    rho = Q[offset3d(i, j, 0, ni, nj)];
+    p = calculate_p(energy, rho, u, v);
 
     if (!one_over_J) {
         *F0 = 0;
@@ -674,9 +665,9 @@ void calculate_F_hat_at_a_point(double *F0, double *F1, double *F2,
         *F2 = 0;
         *F3 = 0;
     } else {
-        *F0 = one_over_J * V;
-        *F1 = one_over_J * (density * u * V + deta_dx * p);
-        *F2 = one_over_J * (density * v * V + deta_dy * p);
+        *F0 = one_over_J * rho * V;
+        *F1 = one_over_J * (rho * u * V + deta_dx * p);
+        *F2 = one_over_J * (rho * v * V + deta_dy * p);
         *F3 = one_over_J * (energy + p) * V;
     }
 
@@ -958,4 +949,62 @@ int smooth(double *q, double *s, double *jac, double *xx, double *xy,
     }
 
     return 0;
+}
+
+void apply_BC(double *Q, double *x_vals_mat, double *y_vals_mat)
+{
+    int i, j;
+    double J_j0, J_j1, u_j1, v_j1, e_j1, rho_j0, rho_j1, p_j0, e_j0, u_j0, v_j0,
+    dx_dxi_j0, dx_deta_j0, dx_deta_j1, dy_dxi_j0, dy_deta_j0, dy_deta_j1,
+    dxi_dx_j0, dxi_dx_j1, dxi_dy_j0, dxi_dy_j1, deta_dx_j0, deta_dy_j0;
+
+    for (i = i_TEL; i <= i_TEU; i++) {
+        j = 0;
+        calculate_u_and_v(&u_j1, &v_j1, Q, i, j+1);        
+
+        /* u_i,0 and v_i,0 */
+        J_j0 = 1.0 / calculate_one_over_jacobian_at_a_point(x_vals_mat, y_vals_mat, i,j);
+        J_j1 = 1.0 / calculate_one_over_jacobian_at_a_point(x_vals_mat, y_vals_mat, i,j+1);
+
+        dx_dxi_j0  = first_deriv(x_vals_mat, 'i', i,j);
+        dx_deta_j0 = first_deriv(x_vals_mat, 'j', i,j);
+        dx_deta_j1 = first_deriv(x_vals_mat, 'j', i,j+1);
+        dy_dxi_j0  = first_deriv(y_vals_mat, 'i', i,j);
+        dy_deta_j0 = first_deriv(y_vals_mat, 'j', i,j);
+        dy_deta_j1 = first_deriv(y_vals_mat, 'j', i,j+1);
+
+        dxi_dx_j0  =   J_j0 * dy_deta_j0;
+        dxi_dx_j1  =   J_j1 * dy_deta_j1;   
+        dxi_dy_j0  = - J_j0 * dx_deta_j0;
+        dxi_dy_j1  = - J_j1 * dx_deta_j1;
+        deta_dx_j0 = - J_j0 * dy_dxi_j0;
+        deta_dy_j0 =   J_j0 * dx_dxi_j0;
+
+        u_j0 = (dxi_dx_j1 * u_j1 + dxi_dy_j1 * v_j1) / (dxi_dx_j0 - dxi_dy_j0 * deta_dx_j0 / deta_dy_j0);
+        v_j0 = - deta_dx_j0 / deta_dy_j0 * (dxi_dx_j1 * u_j1 + dxi_dy_j1 * v_j1) / (dxi_dx_j0 - dxi_dy_j0 * deta_dx_j0 / deta_dy_j0);
+        dprintD(deta_dy_j0);
+
+        /* rho_i,0 */
+        rho_j1 = Q[offset3d(i, j+1, 0, ni, nj)];
+        rho_j0 = rho_j1;
+        
+        /* p_i,0 */
+        e_j1 = Q[offset3d(i, j+1, 3, ni, nj)];
+        p_j0 = calculate_p(e_j1, rho_j1, u_j1, v_j1);
+
+        /* e_i,0*/
+        e_j0 = p_j0 / (Gamma -1) + 0.5 * rho_j0 * (u_j0 * u_j0 + v_j0 *v_j0);
+
+        Q[offset3d(i, j, 0, ni, nj)] = rho_j0;
+        Q[offset3d(i, j, 1, ni, nj)] = rho_j0 * u_j0;
+        Q[offset3d(i, j, 2, ni, nj)] = rho_j0 * v_j0;
+        // Q[offset3d(i, j, 3, ni, nj)] = e_j0;
+
+        dprintD(u_j0);
+        dprintD(v_j0);
+
+    }
+
+
+
 }

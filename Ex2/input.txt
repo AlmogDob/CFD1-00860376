@@ -1,19 +1,19 @@
-i_tel
+i_TEL
 11
 
-i_le
+i_LE
 25
 
-i_teu
+i_TEU
 39
 
-j_tel
+j_TEL
 0
 
-j_le
+j_LE
 0
 
-j_teu
+j_TEU
 0
 
 Mach_inf
