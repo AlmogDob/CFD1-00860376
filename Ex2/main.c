@@ -293,7 +293,7 @@ int main(int argc, char const *argv[])
     copy_3Dmat_to_3Dmat(first_Q, current_Q);
 
     
-    for (int iteration = 0; iteration < 1; iteration++) {
+    for (int iteration = 0; iteration < 3; iteration++) {
         RHS(S, W, current_Q, x_vals_mat, y_vals_mat, J_vals_mat, dxi_dx_mat,
             dxi_dy_mat, deta_dx_mat, deta_dy_mat, s2, rspec, qv, dd);
         advance_Q(next_Q, current_Q, S, x_vals_mat, y_vals_mat);
@@ -302,11 +302,11 @@ int main(int argc, char const *argv[])
         dprintINT(iteration);
     }
     
-    int layer = 2;
+    int layer = 1;
     print_layer_of_mat3D(first_Q, layer);
     print_layer_of_mat3D(current_Q, layer);
 
-    print_mat2D(deta_dy_mat);
+    // print_mat2D(deta_dy_mat);
 /*------------------------------------------------------------*/
 
     free(x_vals_mat);
@@ -956,11 +956,16 @@ void apply_BC(double *Q, double *x_vals_mat, double *y_vals_mat)
     int i, j;
     double J_j0, J_j1, u_j1, v_j1, e_j1, rho_j0, rho_j1, p_j0, e_j0, u_j0, v_j0,
     dx_dxi_j0, dx_deta_j0, dx_deta_j1, dy_dxi_j0, dy_deta_j0, dy_deta_j1,
-    dxi_dx_j0, dxi_dx_j1, dxi_dy_j0, dxi_dy_j1, deta_dx_j0, deta_dy_j0;
-
+    dxi_dx_j0, dxi_dx_j1, dxi_dy_j0, dxi_dy_j1, deta_dx_j0, deta_dy_j0,
+    U1, V1,
+    e_iTEU_jTEU, rho_iTEU_jTEU, u_iTEU_jTEU, v_iTEU_jTEU, p_iTEU_jTEU,
+    e_iTEL_jTEL, rho_iTEL_jTEL, u_iTEL_jTEL, v_iTEL_jTEL, p_iTEL_jTEL,
+    e_iTE_jTE, rho_iTE_jTE, u_iTE_jTE, v_iTE_jTE, p_iTE_jTE;
+/* wall BC */
     for (i = i_TEL; i <= i_TEU; i++) {
-        j = 0;
+        j = j_LE;
         calculate_u_and_v(&u_j1, &v_j1, Q, i, j+1);        
+        contravariant_velocities(&U1, &V1, x_vals_mat, y_vals_mat, Q, i, j);
 
         /* u_i,0 and v_i,0 */
         J_j0 = 1.0 / calculate_one_over_jacobian_at_a_point(x_vals_mat, y_vals_mat, i,j);
@@ -981,8 +986,11 @@ void apply_BC(double *Q, double *x_vals_mat, double *y_vals_mat)
         deta_dy_j0 =   J_j0 * dx_dxi_j0;
 
         u_j0 = (dxi_dx_j1 * u_j1 + dxi_dy_j1 * v_j1) / (dxi_dx_j0 - dxi_dy_j0 * deta_dx_j0 / deta_dy_j0);
-        v_j0 = - deta_dx_j0 / deta_dy_j0 * (dxi_dx_j1 * u_j1 + dxi_dy_j1 * v_j1) / (dxi_dx_j0 - dxi_dy_j0 * deta_dx_j0 / deta_dy_j0);
-        dprintD(deta_dy_j0);
+        v_j0 = -(dxi_dx_j1 * u_j1 + dxi_dy_j1 * v_j1) / (deta_dy_j0 / deta_dx_j0 * dxi_dx_j0 - dxi_dy_j0);
+        /*test*/
+        // double uj0_new = U1 * deta_dy_j0 / J_j0;
+        // double vj0_new = - U1 * deta_dx_j0 / J_j0;
+        /*test*/
 
         /* rho_i,0 */
         rho_j1 = Q[offset3d(i, j+1, 0, ni, nj)];
@@ -998,13 +1006,37 @@ void apply_BC(double *Q, double *x_vals_mat, double *y_vals_mat)
         Q[offset3d(i, j, 0, ni, nj)] = rho_j0;
         Q[offset3d(i, j, 1, ni, nj)] = rho_j0 * u_j0;
         Q[offset3d(i, j, 2, ni, nj)] = rho_j0 * v_j0;
-        // Q[offset3d(i, j, 3, ni, nj)] = e_j0;
-
-        dprintD(u_j0);
-        dprintD(v_j0);
-
+        Q[offset3d(i, j, 3, ni, nj)] = e_j0;
     }
 
+/* Trailing Edge */
+    calculate_u_and_v(&u_iTEU_jTEU, &v_iTEU_jTEU, Q, i_TEU, j_TEU);
+    calculate_u_and_v(&u_iTEL_jTEL, &v_iTEL_jTEL, Q, i_TEL, j_TEL);
 
+    rho_iTEU_jTEU = Q[offset3d(i_TEU, j_TEU, 0, ni, nj)];
+    rho_iTEL_jTEL = Q[offset3d(i_TEL, j_TEL, 0, ni, nj)];
+
+    e_iTEU_jTEU = Q[offset3d(i_TEU, j_TEU, 3, ni, nj)];
+    e_iTEL_jTEL = Q[offset3d(i_TEL, j_TEL, 3, ni, nj)];
+
+    p_iTEU_jTEU = calculate_p(e_iTEU_jTEU, rho_iTEU_jTEU, u_iTEU_jTEU, v_iTEU_jTEU);
+    p_iTEL_jTEL = calculate_p(e_iTEL_jTEL, rho_iTEL_jTEL, u_iTEL_jTEL, v_iTEL_jTEL);
+    
+    p_iTE_jTE   = 0.5 * (p_iTEU_jTEU   + p_iTEL_jTEL);
+    u_iTE_jTE   = 0.5 * (u_iTEU_jTEU   + u_iTEL_jTEL);
+    v_iTE_jTE   = 0.5 * (v_iTEU_jTEU   + v_iTEL_jTEL);
+    e_iTE_jTE   = 0.5 * (e_iTEU_jTEU   + e_iTEL_jTEL);
+    rho_iTE_jTE = 0.5 * (rho_iTEU_jTEU + rho_iTEL_jTEL);
+
+    Q[offset3d(i_TEL, j_TEL, 0, ni, nj)] = rho_iTE_jTE;
+    Q[offset3d(i_TEU, j_TEU, 0, ni, nj)] = rho_iTE_jTE;
+    Q[offset3d(i_TEL, j_TEL, 1, ni, nj)] = rho_iTE_jTE * u_iTE_jTE;
+    Q[offset3d(i_TEU, j_TEU, 1, ni, nj)] = rho_iTE_jTE * u_iTE_jTE;
+    Q[offset3d(i_TEL, j_TEL, 2, ni, nj)] = rho_iTE_jTE * v_iTE_jTE;
+    Q[offset3d(i_TEU, j_TEU, 2, ni, nj)] = rho_iTE_jTE * v_iTE_jTE;
+    Q[offset3d(i_TEL, j_TEL, 3, ni, nj)] = e_iTE_jTE;
+    Q[offset3d(i_TEU, j_TEU, 3, ni, nj)] = e_iTE_jTE;
+
+    dprintD(u_iTE_jTE * rho_iTE_jTE);
 
 }
