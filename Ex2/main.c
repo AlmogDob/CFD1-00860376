@@ -95,6 +95,8 @@ int smooth(double *q, double *s, double *jac, double *xx, double *xy,
            double *rspec, double *qv, double *dd,
            double epse, double gamma, double fsmach, double dt);
 void apply_BC(double *Q, double *x_vals_mat, double *y_vals_mat);
+void output_mat2D_to_file(FILE *fp, double *data);
+void output_layer_of_mat3D_to_file(FILE *fp, double *data, int layer);
 
 /* global variables */
 int ni, nj, max_ni_nj, i_TEL, i_LE, i_TEU, j_TEL, j_LE, j_TEU;
@@ -107,7 +109,7 @@ int main(int argc, char const *argv[])
     char input_dir[MAXDIR], mesh_dir[MAXDIR], current_word[MAXWORD];
     double *x_vals_mat, *y_vals_mat, *J_vals_mat, *first_Q,
     *current_Q, *next_Q, *S, *W, *dxi_dx_mat, *dxi_dy_mat, *deta_dx_mat,
-    *deta_dy_mat, *s2, *rspec, *qv, *dd;
+    *deta_dy_mat, *s2, *rspec, *qv, *dd, *U_mat, *V_mat;
 
 /* getting the input directory and mesh directory*/
     if (--argc != 2) {
@@ -193,6 +195,18 @@ int main(int argc, char const *argv[])
     for (int i_index = 0; i_index < ni; i_index++) {   /* filling the matrix with zeros */
         for (int j_index = 0; j_index < nj; j_index++) {
             deta_dy_mat[offset2d(i_index, j_index, ni)] = 0;
+        }
+    }
+    U_mat = (double *)malloc(sizeof(double) * ni * nj);
+    for (int i_index = 0; i_index < ni; i_index++) {   /* filling the matrix with zeros */
+        for (int j_index = 0; j_index < nj; j_index++) {
+            U_mat[offset2d(i_index, j_index, ni)] = 0;
+        }
+    }
+    V_mat = (double *)malloc(sizeof(double) * ni * nj);
+    for (int i_index = 0; i_index < ni; i_index++) {   /* filling the matrix with zeros */
+        for (int j_index = 0; j_index < nj; j_index++) {
+            V_mat[offset2d(i_index, j_index, ni)] = 0;
         }
     }
     s2 = (double *)malloc(sizeof(double) * max_ni_nj);
@@ -293,7 +307,7 @@ int main(int argc, char const *argv[])
     copy_3Dmat_to_3Dmat(first_Q, current_Q);
 
     
-    for (int iteration = 0; iteration < 3; iteration++) {
+    for (int iteration = 0; iteration < 5e3; iteration++) {
         RHS(S, W, current_Q, x_vals_mat, y_vals_mat, J_vals_mat, dxi_dx_mat,
             dxi_dy_mat, deta_dx_mat, deta_dy_mat, s2, rspec, qv, dd);
         advance_Q(next_Q, current_Q, S, x_vals_mat, y_vals_mat);
@@ -302,11 +316,32 @@ int main(int argc, char const *argv[])
         dprintINT(iteration);
     }
     
-    int layer = 1;
-    print_layer_of_mat3D(first_Q, layer);
-    print_layer_of_mat3D(current_Q, layer);
+    int layer = 2;
+    // print_layer_of_mat3D(first_Q, layer);
+    // print_layer_of_mat3D(current_Q, layer);
 
-    // print_mat2D(deta_dy_mat);
+    for (int i = 0; i < ni; i++) {
+        for (int j = 0; j < nj; j++) {
+            double U, V;
+            contravariant_velocities(&U, &V, x_vals_mat, y_vals_mat, current_Q, i, j);
+            int index = offset2d(i, j, ni);
+            U_mat[index] = U;
+            V_mat[index] = V;
+        }
+    }
+    FILE *rho_u_fp = fopen("./results/rho_u.txt", "wt");
+    FILE *rho_v_fp = fopen("./results/rho_v.txt", "wt");
+    FILE *x_fp = fopen("./results/x_mat.txt", "wt");
+    FILE *y_fp = fopen("./results/y_mat.txt", "wt");
+    FILE *U_fp = fopen("./results/U_mat.txt", "wt");
+    FILE *V_fp = fopen("./results/V_mat.txt", "wt");
+    output_layer_of_mat3D_to_file(rho_u_fp, current_Q, 1);
+    output_layer_of_mat3D_to_file(rho_v_fp, current_Q, 2);
+    output_mat2D_to_file(x_fp, x_vals_mat);
+    output_mat2D_to_file(y_fp, y_vals_mat);
+    output_mat2D_to_file(U_fp, U_mat);
+    output_mat2D_to_file(V_fp, V_mat);
+    
 /*------------------------------------------------------------*/
 
     free(x_vals_mat);
@@ -953,7 +988,7 @@ int smooth(double *q, double *s, double *jac, double *xx, double *xy,
 
 void apply_BC(double *Q, double *x_vals_mat, double *y_vals_mat)
 {
-    int i, j;
+    int i, j, k;
     double J_j0, J_j1, u_j1, v_j1, e_j1, rho_j0, rho_j1, p_j0, e_j0, u_j0, v_j0,
     dx_dxi_j0, dx_deta_j0, dx_deta_j1, dy_dxi_j0, dy_deta_j0, dy_deta_j1,
     dxi_dx_j0, dxi_dx_j1, dxi_dy_j0, dxi_dy_j1, deta_dx_j0, deta_dy_j0,
@@ -965,7 +1000,7 @@ void apply_BC(double *Q, double *x_vals_mat, double *y_vals_mat)
     for (i = i_TEL; i <= i_TEU; i++) {
         j = j_LE;
         calculate_u_and_v(&u_j1, &v_j1, Q, i, j+1);        
-        contravariant_velocities(&U1, &V1, x_vals_mat, y_vals_mat, Q, i, j);
+        contravariant_velocities(&U1, &V1, x_vals_mat, y_vals_mat, Q, i, j+1);
 
         /* u_i,0 and v_i,0 */
         J_j0 = 1.0 / calculate_one_over_jacobian_at_a_point(x_vals_mat, y_vals_mat, i,j);
@@ -985,11 +1020,11 @@ void apply_BC(double *Q, double *x_vals_mat, double *y_vals_mat)
         deta_dx_j0 = - J_j0 * dy_dxi_j0;
         deta_dy_j0 =   J_j0 * dx_dxi_j0;
 
-        u_j0 = (dxi_dx_j1 * u_j1 + dxi_dy_j1 * v_j1) / (dxi_dx_j0 - dxi_dy_j0 * deta_dx_j0 / deta_dy_j0);
-        v_j0 = -(dxi_dx_j1 * u_j1 + dxi_dy_j1 * v_j1) / (deta_dy_j0 / deta_dx_j0 * dxi_dx_j0 - dxi_dy_j0);
+        // u_j0 = (dxi_dx_j1 * u_j1 + dxi_dy_j1 * v_j1) / (dxi_dx_j0 - dxi_dy_j0 * deta_dx_j0 / deta_dy_j0);
+        // v_j0 = -(dxi_dx_j1 * u_j1 + dxi_dy_j1 * v_j1) / (deta_dy_j0 / deta_dx_j0 * dxi_dx_j0 - dxi_dy_j0);
         /*test*/
-        // double uj0_new = U1 * deta_dy_j0 / J_j0;
-        // double vj0_new = - U1 * deta_dx_j0 / J_j0;
+        u_j0 = U1 * deta_dy_j0 / J_j0;
+        v_j0 = - U1 * deta_dx_j0 / J_j0;
         /*test*/
 
         /* rho_i,0 */
@@ -1009,7 +1044,7 @@ void apply_BC(double *Q, double *x_vals_mat, double *y_vals_mat)
         Q[offset3d(i, j, 3, ni, nj)] = e_j0;
     }
 
-/* Trailing Edge */
+/* trailing edge */
     calculate_u_and_v(&u_iTEU_jTEU, &v_iTEU_jTEU, Q, i_TEU, j_TEU);
     calculate_u_and_v(&u_iTEL_jTEL, &v_iTEL_jTEL, Q, i_TEL, j_TEL);
 
@@ -1025,18 +1060,66 @@ void apply_BC(double *Q, double *x_vals_mat, double *y_vals_mat)
     p_iTE_jTE   = 0.5 * (p_iTEU_jTEU   + p_iTEL_jTEL);
     u_iTE_jTE   = 0.5 * (u_iTEU_jTEU   + u_iTEL_jTEL);
     v_iTE_jTE   = 0.5 * (v_iTEU_jTEU   + v_iTEL_jTEL);
-    e_iTE_jTE   = 0.5 * (e_iTEU_jTEU   + e_iTEL_jTEL);
     rho_iTE_jTE = 0.5 * (rho_iTEU_jTEU + rho_iTEL_jTEL);
+    e_iTE_jTE   = calculate_energy(p_iTE_jTE, u_iTE_jTE, v_iTE_jTE, rho_iTE_jTE);
 
     Q[offset3d(i_TEL, j_TEL, 0, ni, nj)] = rho_iTE_jTE;
     Q[offset3d(i_TEU, j_TEU, 0, ni, nj)] = rho_iTE_jTE;
+    Q[offset3d(i_TEL, j_TEU, 1, ni, nj)] = rho_iTE_jTE * u_iTE_jTE;
     Q[offset3d(i_TEL, j_TEL, 1, ni, nj)] = rho_iTE_jTE * u_iTE_jTE;
-    Q[offset3d(i_TEU, j_TEU, 1, ni, nj)] = rho_iTE_jTE * u_iTE_jTE;
-    Q[offset3d(i_TEL, j_TEL, 2, ni, nj)] = rho_iTE_jTE * v_iTE_jTE;
+    Q[offset3d(i_TEU, j_TEL, 2, ni, nj)] = rho_iTE_jTE * v_iTE_jTE;
     Q[offset3d(i_TEU, j_TEU, 2, ni, nj)] = rho_iTE_jTE * v_iTE_jTE;
     Q[offset3d(i_TEL, j_TEL, 3, ni, nj)] = e_iTE_jTE;
     Q[offset3d(i_TEU, j_TEU, 3, ni, nj)] = e_iTE_jTE;
 
-    dprintD(u_iTE_jTE * rho_iTE_jTE);
+/* wake BC */
+    for (i = 0; i < i_TEL; i++) {
+        j = j_TEL;
 
+        for (k = 0; k < 4; k++) {
+            Q[offset3d(i, j, k, ni, nj)] = 0.5 * (Q[offset3d(i, j+1, k, ni, nj)] + Q[offset3d(ni-1-i, j+1, k, ni, nj)]);
+            Q[offset3d(ni-1-i, j, k, ni, nj)] =  Q[offset3d(i, j, k, ni, nj)];
+        }
+    }
+
+/* outflow BC */
+    for (j = 0; j < nj; j++) {
+        for (k = 0; k < 4; k++) {
+            Q[offset3d(0, j, k, ni, nj)]    = Q[offset3d(1, j, k, ni, nj)];
+            Q[offset3d(ni-1, j, k, ni, nj)] = Q[offset3d(ni-1-1, j, k, ni, nj)];
+        }
+    }
+}
+
+/* output data;
+argument list:
+fp - file pointer to output file
+data - 1D array of the output valuse */
+void output_mat2D_to_file(FILE *fp, double *data)
+{
+    int i, j, j_max = nj - 1, i_max = ni - 1;
+    
+    for (j = 0; j < j_max+1; j++) {
+        for (i = 0; i < i_max+1; i++) {
+            fprintf(fp, "%g ", data[offset2d(i, j, i_max+1)]);
+        }
+        fprintf(fp, "\n");
+    }
+}
+
+/* output data;
+argument list:
+fp - file pointer to output file
+data - 1D array of 3D matrix
+layer - the k value */
+void output_layer_of_mat3D_to_file(FILE *fp, double *data, int layer)
+{
+    int i, j, j_max = nj - 1, i_max = ni - 1;
+    
+    for (j = 0; j < j_max+1; j++) {
+        for (i = 0; i < i_max+1; i++) {
+            fprintf(fp, "%g ", data[offset3d(i, j, layer, i_max+1, j_max+1)]);
+        }
+        fprintf(fp, "\n");
+    }
 }
