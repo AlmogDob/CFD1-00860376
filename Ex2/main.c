@@ -100,16 +100,20 @@ void output_mat2D_to_file(FILE *fp, double *data);
 void output_layer_of_mat3D_to_file(FILE *fp, double *data, int layer);
 void calculate_A_hat_j_const(double *dst, double *Q, double *x_vals_mat,
                              double *y_vals_mat, int i, int j);
-void calculate_B_hat_j_const(double *dst, double *Q, double *x_vals_mat,
+void calculate_B_hat_i_const(double *dst, double *Q, double *x_vals_mat,
                              double *y_vals_mat, int i, int j);
 int smoothx(double *q, double *xx, double *xy, int id, int jd, double *a,
-	   double *b, double *c, int j,double *jac, double *drr, double *drp, 
-           double *rspec, double *qv, double *dd,
-           double epsi, double gamma, double fsmach, double dt);
+	        double *b, double *c, int j,double *jac, double *drr, double *drp, 
+            double *rspec, double *qv, double *dd,
+            double epsi, double gamma, double fsmach, double dt);
 int smoothy(double *q, double *yx, double *yy, int id, int jd, double *a,
-	   double *b, double *c, int i,double *jac, double *drr, double *drp, 
-           double *rspec, double *qv, double *dd,
-           double epsi, double gamma, double fsmach, double dt);
+	        double *b, double *c, int i,double *jac, double *drr, double *drp, 
+            double *rspec, double *qv, double *dd,
+            double epsi, double gamma, double fsmach, double dt);
+void LHSX(double *A, double *B, double *C, double *Q, double *x_vals_mat,
+          double *y_vals_mat, int j);
+void LHSY(double *A, double *B, double *C, double *Q, double *x_vals_mat,
+          double *y_vals_mat, int i);
 
 /* global variables */
 int ni, nj, max_ni_nj, i_TEL, i_LE, i_TEU, j_TEL, j_LE, j_TEU;
@@ -855,18 +859,12 @@ void RHS(double *S, double *W, double *Q, double *x_vals_mat, double *y_vals_mat
         }
     }
 
-    smooth(Q, S, J_vals_mat, dxi_dx_mat, dxi_dy_mat, deta_dx_mat, deta_dy_mat,
-           ni, nj, s2, rspec, qv, dd, epse, Gamma, Mach_inf, delta_t);
-
-    // for (j = 0; j < 4; j++) {
-    //     for (i = 0; i < max_ni_nj; i++) {
-    //         printf("%g ", W[offset2d(i, 3-j, max_ni_nj)]);
-    //     }
-    //     printf("\n");
-    // }
-
-    // print_layer_of_mat3D(S, 2);
-
+    if (smooth(Q, S, J_vals_mat, dxi_dx_mat, dxi_dy_mat, deta_dx_mat,
+               deta_dy_mat, ni, nj, s2, rspec, qv, dd, epse, Gamma,
+               Mach_inf, delta_t)) {
+                fprintf(stderr, "[Erorr] problem with smooth it RHS\n");
+                exit(1);
+               }
 }
 
 void advance_Q(double *next_Q, double *current_Q ,double *S, double *x_vals_mat,
@@ -1217,7 +1215,7 @@ void calculate_A_hat_j_const(double *dst, double *Q, double *x_vals_mat,
 
 }
 
-void calculate_B_hat_j_const(double *dst, double *Q, double *x_vals_mat,
+void calculate_B_hat_i_const(double *dst, double *Q, double *x_vals_mat,
                              double *y_vals_mat, int i, int j)
 {
     /* eta (j) direction */
@@ -1265,9 +1263,9 @@ void calculate_B_hat_j_const(double *dst, double *Q, double *x_vals_mat,
 }
 
 int smoothx(double *q, double *xx, double *xy, int id, int jd, double *a,
-	   double *b, double *c, int j,double *jac, double *drr, double *drp, 
-           double *rspec, double *qv, double *dd,
-           double epsi, double gamma, double fsmach, double dt)
+	        double *b, double *c, int j,double *jac, double *drr, double *drp, 
+            double *rspec, double *qv, double *dd,
+            double epsi, double gamma, double fsmach, double dt)
 {
 
     double *rho, *u_vel, *v_vel, *t_e;
@@ -1336,9 +1334,9 @@ int smoothx(double *q, double *xx, double *xy, int id, int jd, double *a,
 }
 
 int smoothy(double *q, double *yx, double *yy, int id, int jd, double *a,
-	   double *b, double *c, int i,double *jac, double *drr, double *drp, 
-           double *rspec, double *qv, double *dd,
-           double epsi, double gamma, double fsmach, double dt)
+	        double *b, double *c, int i,double *jac, double *drr, double *drp, 
+            double *rspec, double *qv, double *dd,
+            double epsi, double gamma, double fsmach, double dt)
 {
 
     double *rho, *u_vel, *v_vel, *t_e;
@@ -1407,4 +1405,64 @@ int smoothy(double *q, double *yx, double *yy, int id, int jd, double *a,
 	    }
         }
     return 0;
+}
+
+void LHSX(double *A, double *B, double *C, double *Q, double *x_vals_mat,
+          double *y_vals_mat, int j)
+{
+    int i, n, m; 
+
+    for (i = 0; i < ni; i++) {
+        calculate_A_hat_j_const(B, Q, x_vals_mat, y_vals_mat, i, j);
+    }
+    for (i = 1; i < ni - 1; i++) {
+        for (n = 0; n < 4; n++) {
+            for (m = 0; m < 4; m++) {
+                    A[offset3d(n, m ,i, 4, 4)] = -delta_t * 0.5 * B[offset3d(n, m, i-1, 4, 4)];
+                    C[offset3d(n, m ,i, 4, 4)] =  delta_t * 0.5 * B[offset3d(n, m, i+1, 4, 4)];
+            }
+        }
+    }
+    for (i = 0; i < ni; i++) {
+        for (n = 0; n < 4; n++) {
+            for (m = 0; m < 4; m++) {
+                if (n == m) {
+                    B[offset3d(n, m, i, 4, 4)] = 1;
+                } else {
+                    B[offset3d(n, m, i, 4, 4)] = 0;
+                }
+            }
+        }
+    }
+    
+}
+
+void LHSY(double *A, double *B, double *C, double *Q, double *x_vals_mat,
+          double *y_vals_mat, int i)
+{
+    int j, n, m; 
+
+    for (j = 0; j < nj; j++) {
+        calculate_B_hat_i_const(B, Q, x_vals_mat, y_vals_mat, i, j);
+    }
+    for (j = 1; j < nj - 1; j++) {
+        for (n = 0; n < 4; n++) {
+            for (m = 0; m < 4; m++) {
+                    A[offset3d(n, m ,j, 4, 4)] = -delta_t * 0.5 * B[offset3d(n, m, j-1, 4, 4)];
+                    C[offset3d(n, m ,j, 4, 4)] =  delta_t * 0.5 * B[offset3d(n, m, j+1, 4, 4)];
+            }
+        }
+    }
+    for (j = 0; j < nj; j++) {
+        for (n = 0; n < 4; n++) {
+            for (m = 0; m < 4; m++) {
+                if (n == m) {
+                    B[offset3d(n, m, j, 4, 4)] = 1;
+                } else {
+                    B[offset3d(n, m, j, 4, 4)] = 0;
+                }
+            }
+        }
+    }
+
 }
