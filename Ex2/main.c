@@ -111,14 +111,23 @@ int smoothy(double *q, double *yx, double *yy, int id, int jd, double *a,
             double *rspec, double *qv, double *dd,
             double epsi, double gamma, double fsmach, double dt);
 void LHSX(double *A, double *B, double *C, double *Q, double *x_vals_mat,
-          double *y_vals_mat, int j);
+          double *y_vals_mat, double *J_vals_mat, double *dxi_dx_mat,
+          double *dxi_dy_mat, double *drr, double *drp, double *rspec,
+          double *qv, double *dd, int j);
 void LHSY(double *A, double *B, double *C, double *Q, double *x_vals_mat,
-          double *y_vals_mat, int i);
+          double *y_vals_mat, double *deta_dx_mat, double *deta_dy_mat,
+          double *J_vals_mat, double *drr, double *drp, double *rspec,
+          double *qv, double *dd, int i);
+void step(double *A, double *B, double *C, double *D, double *current_Q,
+          double *S, double *W, double * x_vals_mat, double *y_vals_mat,
+          double *J_vals_mat, double *dxi_dx_mat, double *dxi_dy_mat,
+          double *deta_dx_mat, double *deta_dy_mat, double *s2,
+          double *drr, double *drp, double *rspec, double *qv, double *dd);
 
 /* global variables */
 int ni, nj, max_ni_nj, i_TEL, i_LE, i_TEU, j_TEL, j_LE, j_TEU;
 double Mach_inf, angle_of_attack_deg, angle_of_attack_rad, density,
-environment_pressure, delta_t, Gamma, epse;
+environment_pressure, delta_t, Gamma, epse, epsi;
 
 int main(int argc, char const *argv[])
 {
@@ -126,7 +135,8 @@ int main(int argc, char const *argv[])
     char input_dir[MAXDIR], mesh_dir[MAXDIR], current_word[MAXWORD];
     double *x_vals_mat, *y_vals_mat, *J_vals_mat, *first_Q,
     *current_Q, *next_Q, *S, *W, *dxi_dx_mat, *dxi_dy_mat, *deta_dx_mat,
-    *deta_dy_mat, *s2, *rspec, *qv, *dd, *U_mat, *V_mat, *A, *B, *C;
+    *deta_dy_mat, *s2, *rspec, *qv, *dd, *U_mat, *V_mat, *A, *B, *C, *D,
+    *drr, *drp;
     int i_index, j_index, k_index;
 
 /* getting the input directory and mesh directory*/
@@ -243,10 +253,32 @@ int main(int argc, char const *argv[])
     for (i_index = 0; i_index < max_ni_nj; i_index++) {   /* filling the matrix with zeros */
         dd[i_index] = 0;
     }
+    drr = (double *)malloc(sizeof(double) * max_ni_nj);
+    for (i_index = 0; i_index < max_ni_nj; i_index++) {   /* filling the matrix with zeros */
+        drr[i_index] = 0;
+    }
+    drp = (double *)malloc(sizeof(double) * max_ni_nj);
+    for (i_index = 0; i_index < max_ni_nj; i_index++) {   /* filling the matrix with zeros */
+        drp[i_index] = 0;
+    }
     W = (double *)malloc(sizeof(double) * max_ni_nj * 4);
     for (i_index = 0; i_index < max_ni_nj; i_index++) {   /* filling the matrix with zeros */
         for (j_index = 0; j_index < 4; j_index++) {
             W[offset2d(i_index, j_index, ni)] = 0;
+        }
+    }
+    D = (double *)malloc(sizeof(double) * max_ni_nj * 4);
+    for (i_index = 0; i_index < max_ni_nj; i_index++) {   /* filling the matrix with zeros */
+        for (j_index = 0; j_index < 4; j_index++) {
+            D[offset2d(i_index, j_index, ni)] = 0;
+        }
+    }
+    A = (double *)malloc(sizeof(double) * 4 * 4 * max_ni_nj);
+    for (i_index = 0; i_index < 4; i_index++) {   /* filling the matrix with zeros */
+        for (j_index = 0; j_index < 4; j_index++) {
+            for (k_index = 0; k_index < max_ni_nj; k_index++) {
+                A[offset2d(i_index, j_index, ni)] = 0;
+            }
         }
     }
     B = (double *)malloc(sizeof(double) * 4 * 4 * max_ni_nj);
@@ -262,14 +294,6 @@ int main(int argc, char const *argv[])
         for (j_index = 0; j_index < 4; j_index++) {
             for (k_index = 0; k_index < max_ni_nj; k_index++) {
                 C[offset2d(i_index, j_index, ni)] = 0;
-            }
-        }
-    }
-    A = (double *)malloc(sizeof(double) * 4 * 4 * max_ni_nj);
-    for (i_index = 0; i_index < 4; i_index++) {   /* filling the matrix with zeros */
-        for (j_index = 0; j_index < 4; j_index++) {
-            for (k_index = 0; k_index < max_ni_nj; k_index++) {
-                A[offset2d(i_index, j_index, ni)] = 0;
             }
         }
     }
@@ -462,6 +486,7 @@ void read_input_file(FILE *fp)
         } else if (!strcmp(current_word, "epse")) {
             fscanf(fp, "%g", &temp);
             epse = (double)temp;
+            epsi = epse * 2;
         } else if (!strcmp(current_word, "i_TEL")) {
             fscanf(fp, "%d", &i_TEL);
         } else if (!strcmp(current_word, "i_LE")) {
@@ -862,7 +887,7 @@ void RHS(double *S, double *W, double *Q, double *x_vals_mat, double *y_vals_mat
     if (smooth(Q, S, J_vals_mat, dxi_dx_mat, dxi_dy_mat, deta_dx_mat,
                deta_dy_mat, ni, nj, s2, rspec, qv, dd, epse, Gamma,
                Mach_inf, delta_t)) {
-                fprintf(stderr, "[Erorr] problem with smooth it RHS\n");
+                fprintf(stderr, "[Erorr] problem with smooth in RHS\n");
                 exit(1);
                }
 }
@@ -1408,9 +1433,12 @@ int smoothy(double *q, double *yx, double *yy, int id, int jd, double *a,
 }
 
 void LHSX(double *A, double *B, double *C, double *Q, double *x_vals_mat,
-          double *y_vals_mat, int j)
+          double *y_vals_mat, double *J_vals_mat, double *dxi_dx_mat,
+          double *dxi_dy_mat, double *drr, double *drp, double *rspec,
+          double *qv, double *dd, int j)
 {
-    int i, n, m; 
+    int i, n, m, index; 
+    double dx_deta, dy_deta, J;
 
     for (i = 0; i < ni; i++) {
         calculate_A_hat_j_const(B, Q, x_vals_mat, y_vals_mat, i, j);
@@ -1434,13 +1462,42 @@ void LHSX(double *A, double *B, double *C, double *Q, double *x_vals_mat,
             }
         }
     }
+
+/* fill jacobian matrix */
+    for (i = 0; i < ni; i++) {
+        for (j = 0; j < nj; j++) {
+            J_vals_mat[offset2d(i, j, ni)] = 1.0 / calculate_one_over_jacobian_at_a_point(x_vals_mat, y_vals_mat, i, j);
+        }
+    }
+/* fille mertic coeffficients matrices */
+    for (i = 0; i < ni; i++) {
+        for (j = 0; j < nj; j++) {
+            index = offset2d(i, j, ni);
+            J = J_vals_mat[index];
+
+            dx_deta = first_deriv(x_vals_mat, 'j', i, j);
+            dy_deta = first_deriv(y_vals_mat, 'j', i, j);
+
+            dxi_dx_mat[index]  =   J * dy_deta;
+            dxi_dy_mat[index]  = - J * dx_deta;
+        }
+    }
+
+    if (smoothx(Q, dxi_dx_mat, dxi_dy_mat, ni, nj, A, B, C, j, J_vals_mat,
+                drr, drp, rspec, qv, dd, epsi, Gamma, Mach_inf, delta_t)) {
+                fprintf(stderr, "[Erorr] problem with smoothx in LHSX\n");
+                exit(1);
+               }
     
 }
 
 void LHSY(double *A, double *B, double *C, double *Q, double *x_vals_mat,
-          double *y_vals_mat, int i)
+          double *y_vals_mat, double *deta_dx_mat, double *deta_dy_mat,
+          double *J_vals_mat, double *drr, double *drp, double *rspec,
+          double *qv, double *dd, int i)
 {
-    int j, n, m; 
+    int j, n, m, index; 
+    double J, dx_dxi, dy_dxi;
 
     for (j = 0; j < nj; j++) {
         calculate_B_hat_i_const(B, Q, x_vals_mat, y_vals_mat, i, j);
@@ -1465,4 +1522,54 @@ void LHSY(double *A, double *B, double *C, double *Q, double *x_vals_mat,
         }
     }
 
+/* fill jacobian matrix */
+    for (i = 0; i < ni; i++) {
+        for (j = 0; j < nj; j++) {
+            J_vals_mat[offset2d(i, j, ni)] = 1.0 / calculate_one_over_jacobian_at_a_point(x_vals_mat, y_vals_mat, i, j);
+        }
+    }
+/* fille mertic coeffficients matrices */
+    for (i = 0; i < ni; i++) {
+        for (j = 0; j < nj; j++) {
+            index = offset2d(i, j, ni);
+            J = J_vals_mat[index];
+
+            dx_dxi = first_deriv(x_vals_mat, 'i', i, j);
+            dy_dxi = first_deriv(y_vals_mat, 'i', i, j);
+
+            deta_dx_mat[index] = - J * dy_dxi;
+            deta_dy_mat[index] =   J * dx_dxi;
+        }
+    }
+
+    if (smoothy(Q, deta_dx_mat, deta_dy_mat, ni,nj, A, B, C, i, J_vals_mat,
+                drr, drp, rspec, qv, dd, epsi, Gamma, Mach_inf, delta_t)) {
+                fprintf(stderr, "[Erorr] problem with smoothy in LHSY\n");
+                exit(1);
+               }
+
+}
+
+void step(double *A, double *B, double *C, double *D, double *current_Q,
+          double *S, double *W, double * x_vals_mat, double *y_vals_mat,
+          double *J_vals_mat, double *dxi_dx_mat, double *dxi_dy_mat,
+          double *deta_dx_mat, double *deta_dy_mat, double *s2,
+          double *drr, double *drp, double *rspec, double *qv, double *dd)
+{
+    int i, j, k;
+
+    RHS(S, W, current_Q, x_vals_mat, y_vals_mat, J_vals_mat, dxi_dx_mat, dxi_dy_mat,
+        deta_dx_mat, deta_dy_mat, s2, rspec, qv, dd);
+
+/* xi inversions */
+    for (j = 1; j < nj - 1; j++) {
+        LHSX(A, B, C, current_Q, x_vals_mat, y_vals_mat, J_vals_mat,
+             dxi_dx_mat, dxi_dy_mat, drr, drp, rspec, qv, dd, j);
+        for (i = 0; i < ni; i++) {
+            for (k = 0; k < 4; k++) {
+                D[offset2d(i, k, max_ni_nj)] = S[offset3d(i, j, k, ni, nj)];
+            }
+        }
+
+    }
 }
