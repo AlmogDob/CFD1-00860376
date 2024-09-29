@@ -1550,6 +1550,146 @@ void LHSY(double *A, double *B, double *C, double *Q, double *x_vals_mat,
 
 }
 
+int btri4s(float *a, float *b, float *c, float *f, int kd, int ks, int ke)
+{
+  /* Local variables */
+  int k, m, n, nd, md;
+
+  float c1, d1, d2, d3, d4, c2, c3, c4, b11, b21, b22, b31, b32, b33, 
+    b41, b42, b43, b44, u12, u13, u14, u23, u24, u34;
+  
+  
+  /*   (A,B,C)F = F, F and B are overloaded, solution in F */
+
+  md = 4;
+  nd = 4;
+
+  /*   Part 1. Forward block sweep */
+  
+  for (k = ks; k <= ke; k++)
+    {
+      
+      /*      Step 1. Construct L in B */
+      
+      if (k != ks) 
+	{
+	  for (m = 0; m < md; m++) 
+	    {
+	      for (n = 0; n < nd; n++) 
+		{
+		  b[k + kd * (m + md * n)] = b[k + kd * (m + md * n)] 
+		    - a[k + kd * (m + md * 0)] * b[k - 1 + kd * (0 + md * n)] 
+		    - a[k + kd * (m + md * 1)] * b[k - 1 + kd * (1 + md * n)] 
+		    - a[k + kd * (m + md * 2)] * b[k - 1 + kd * (2 + md * n)] 
+		    - a[k + kd * (m + md * 3)] * b[k - 1 + kd * (3 + md * n)] ;
+		}
+	    }
+	}
+      
+      /*      Step 2. Compute L inverse (block matrix) */
+      
+      /*          A. Decompose L into L and U */
+      
+      b11 = 1. / b[k + kd * (0 + md * 0)];
+      u12 = b[k + kd * (0 + md * 1)] * b11;
+      u13 = b[k + kd * (0 + md * 2)] * b11;
+      u14 = b[k + kd * (0 + md * 3)] * b11;
+      b21 = b[k + kd * (1 + md * 0)];
+      b22 = 1. / (b[k + kd * (1 + md * 1)] - b21 * u12);
+      u23 = (b[k + kd * (1 + md * 2)] - b21 * u13) * b22;
+      u24 = (b[k + kd * (1 + md * 3)] - b21 * u14) * b22;
+      b31 = b[k + kd * (2 + md * 0)];
+      b32 = b[k + kd * (2 + md * 1)] - b31 * u12;
+      b33 = 1. / (b[k + kd * (2 + md * 2)] - b31 * u13 - b32 * u23);
+      u34 = (b[k + kd * (2 + md * 3)] - b31 * u14 - b32 * u24) * b33;
+      b41 = b[k + kd * (3 + md * 0)];
+      b42 = b[k + kd * (3 + md * 1)] - b41 * u12;
+      b43 = b[k + kd * (3 + md * 2)] - b41 * u13 - b42 * u23;
+      b44 = 1. / (b[k + kd * (3 + md * 3)] - b41 * u14 - b42 * u24 
+		  - b43 * u34);
+      
+      /*      Step 3. Solve for intermediate vector */
+      
+      /*          A. Construct RHS */
+      if (k != ks) 
+	{
+	  for (m = 0; m < md; m++) 
+	    {
+	      f[k + kd * m] = f[k + kd * m] 
+		- a[k + kd * (m + md * 0)] * f[k - 1 + kd * 0] 
+		- a[k + kd * (m + md * 1)] * f[k - 1 + kd * 1] 
+		- a[k + kd * (m + md * 2)] * f[k - 1 + kd * 2] 
+		- a[k + kd * (m + md * 3)] * f[k - 1 + kd * 3];
+	    }
+	}
+      
+      /*          B. Intermediate vector */
+      
+      /*          Forward substitution */
+      
+      d1 = f[k + kd * 0] * b11;
+      d2 = (f[k + kd * 1] - b21 * d1) * b22;
+      d3 = (f[k + kd * 2] - b31 * d1 - b32 * d2) * b33;
+      d4 = (f[k + kd * 3] - b41 * d1 - b42 * d2 - b43 * d3) * b44;
+      
+      /*          Backward substitution */
+      
+      f[k + kd * 3] = d4;
+      f[k + kd * 2] = d3 - u34 * d4;
+      f[k + kd * 1] = d2 - u23 * f[k + kd * 2] - u24 * d4;
+      f[k + kd * 0] = d1 - u12 * f[k + kd * 1] - u13 * f[k + kd * 2] - u14 * d4;
+      
+      /*      Step 4. Construct U = L ** (-1) * C */
+      /*              by columns and store in B */
+      
+      if (k != ke) 
+	{
+	  for (n = 0; n < nd; n++) 
+	    {
+
+	      /*          Forward substitution */
+	      
+	      c1 = c[k + kd * (0 + md * n)] * b11;
+	      c2 = (c[k + kd * (1 + md * n)] - b21 * c1) * b22;
+	      c3 = (c[k + kd * (2 + md * n)] - b31 * c1 - b32 * c2) * 
+		b33;
+	      c4 = (c[k + kd * (3 + md * n)] - b41 * c1 - b42 * c2 - 
+		    b43 * c3) * b44;
+	      
+	      /*          Backward substitution */
+	      
+	      b[k + kd * (3 + md * n)] = c4;
+	      b[k + kd * (2 + md * n)] = c3 - u34 * c4;
+	      b[k + kd * (1 + md * n)] = c2 - u23 * b[k + kd * (2 + md * n)] - u24 * c4;
+	      b[k + kd * (0 + md * n)] = c1 - u12 * b[k + kd * (1 + md * n)] 
+		- u13 * b[k + kd * (2 + md * n)] - u14 * c4;
+	    }
+	}
+    }
+  
+  /*   Part 2. Backward block sweep */
+  
+  if (ke == ks) 
+    {
+      return 0;
+    }
+
+  for (k = ke - 1; k >= ks; --k) 
+    {
+      for (m = 0; m < md; m++) 
+	{
+	  f[k + kd * m] = f[k + kd * m] 
+	    - b[k + kd * (m + md * 0)] * f[k + 1 + kd * 0] 
+	    - b[k + kd * (m + md * 1)] * f[k + 1 + kd * 1] 
+	    - b[k + kd * (m + md * 2)] * f[k + 1 + kd * 2] 
+	    - b[k + kd * (m + md * 3)] * f[k + 1 + kd * 3];
+	}
+    }
+  
+  return 0;
+  
+}
+
 void step(double *A, double *B, double *C, double *D, double *current_Q,
           double *S, double *W, double * x_vals_mat, double *y_vals_mat,
           double *J_vals_mat, double *dxi_dx_mat, double *dxi_dy_mat,
