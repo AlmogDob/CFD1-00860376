@@ -118,6 +118,7 @@ void LHSY(double *A, double *B, double *C, double *Q, double *x_vals_mat,
           double *y_vals_mat, double *deta_dx_mat, double *deta_dy_mat,
           double *J_vals_mat, double *drr, double *drp, double *rspec,
           double *qv, double *dd, int i);
+int btri4s(float *a, float *b, float *c, float *f, int kd, int ks, int ke);
 void step(double *A, double *B, double *C, double *D, double *current_Q,
           double *S, double *W, double * x_vals_mat, double *y_vals_mat,
           double *J_vals_mat, double *dxi_dx_mat, double *dxi_dy_mat,
@@ -887,7 +888,8 @@ void RHS(double *S, double *W, double *Q, double *x_vals_mat, double *y_vals_mat
     if (smooth(Q, S, J_vals_mat, dxi_dx_mat, dxi_dy_mat, deta_dx_mat,
                deta_dy_mat, ni, nj, s2, rspec, qv, dd, epse, Gamma,
                Mach_inf, delta_t)) {
-                fprintf(stderr, "[Erorr] problem with smooth in RHS\n");
+                /* returns zero on success */
+                fprintf(stderr, "%s:%d: [Erorr] problem with smooth in RHS\n", __FILE__, __LINE__);
                 exit(1);
                }
 }
@@ -1485,7 +1487,8 @@ void LHSX(double *A, double *B, double *C, double *Q, double *x_vals_mat,
 
     if (smoothx(Q, dxi_dx_mat, dxi_dy_mat, ni, nj, A, B, C, j, J_vals_mat,
                 drr, drp, rspec, qv, dd, epsi, Gamma, Mach_inf, delta_t)) {
-                fprintf(stderr, "[Erorr] problem with smoothx in LHSX\n");
+                /* returns zero on success */
+                fprintf(stderr, "%s:%d: [Erorr] problem with smoothx in LHSX\n", __FILE__, __LINE__);
                 exit(1);
                }
     
@@ -1544,7 +1547,8 @@ void LHSY(double *A, double *B, double *C, double *Q, double *x_vals_mat,
 
     if (smoothy(Q, deta_dx_mat, deta_dy_mat, ni,nj, A, B, C, i, J_vals_mat,
                 drr, drp, rspec, qv, dd, epsi, Gamma, Mach_inf, delta_t)) {
-                fprintf(stderr, "[Erorr] problem with smoothy in LHSY\n");
+                /* returns zero on success */
+                fprintf(stderr, "%s:%d: [Erorr] problem with smoothy in LHSY\n", __FILE__, __LINE__);
                 exit(1);
                }
 
@@ -1710,6 +1714,7 @@ void step(double *A, double *B, double *C, double *D, double *current_Q,
                 D[offset2d(i, k, max_ni_nj)] = S[offset3d(i, j, k, ni, nj)];
             }
         }
+        /* TODO: matrix invertion */
 
     }
 }
