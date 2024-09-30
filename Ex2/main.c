@@ -118,8 +118,9 @@ void LHSY(double *A, double *B, double *C, double *Q, double *x_vals_mat,
           double *y_vals_mat, double *deta_dx_mat, double *deta_dy_mat,
           double *J_vals_mat, double *drr, double *drp, double *rspec,
           double *qv, double *dd, int i);
-int btri4s(float *a, float *b, float *c, float *f, int kd, int ks, int ke);
-void step(double *A, double *B, double *C, double *D, double *current_Q,
+int btri4s(double *a, double *b, double *c, double *f, int kd, int ks, int ke);
+double calculate_S_norm(double *S);
+double step(double *A, double *B, double *C, double *D, double *current_Q,
           double *S, double *W, double * x_vals_mat, double *y_vals_mat,
           double *J_vals_mat, double *dxi_dx_mat, double *dxi_dy_mat,
           double *deta_dx_mat, double *deta_dy_mat, double *s2,
@@ -134,10 +135,12 @@ int main(int argc, char const *argv[])
 {
 /* declerations */
     char input_dir[MAXDIR], mesh_dir[MAXDIR], current_word[MAXWORD];
+
     double *x_vals_mat, *y_vals_mat, *J_vals_mat, *first_Q,
     *current_Q, *next_Q, *S, *W, *dxi_dx_mat, *dxi_dy_mat, *deta_dx_mat,
     *deta_dy_mat, *s2, *rspec, *qv, *dd, *U_mat, *V_mat, *A, *B, *C, *D,
-    *drr, *drp;
+    *drr, *drp, first_S_norm, current_S_norm;
+    
     int i_index, j_index, k_index;
 
 /* getting the input directory and mesh directory*/
@@ -339,10 +342,6 @@ int main(int argc, char const *argv[])
     printf("--------------------\n");
     dprintINT(ni);
     dprintINT(nj);
-    // printf("x_vals_mat\n");
-    // print_mat2D(x_vals_mat);
-    // printf("y_vals_mat\n");
-    // print_mat2D(y_vals_mat);
     dprintINT(i_TEL);
     dprintINT(i_LE);
     dprintINT(i_TEU);
@@ -357,15 +356,6 @@ int main(int argc, char const *argv[])
     dprintD(Gamma);
     dprintINT(max_ni_nj);
     dprintD(epse);
-
-    // for (int i = 0; i < ni; i++) {
-    //     for (int j = 0; j < nj; j++) {
-    //         J_vals_mat[offset2d(i, j, ni)] = 1.0 / calculate_one_over_jacobian_at_a_point(x_vals_mat, y_vals_mat, i, j);
-    //         // J_vals_mat[offset2d(i, j, ni)] = i + j;
-    //     }
-    // }
-    // print_mat2D(J_vals_mat);
-
     printf("--------------------\n");
 
 /*------------------------------------------------------------*/
@@ -374,12 +364,21 @@ int main(int argc, char const *argv[])
     copy_3Dmat_to_3Dmat(first_Q, current_Q);
     
     for (int iteration = 0; iteration < 1; iteration++) {
-        RHS(S, W, current_Q, x_vals_mat, y_vals_mat, J_vals_mat, dxi_dx_mat,
-            dxi_dy_mat, deta_dx_mat, deta_dy_mat, s2, rspec, qv, dd);
+        current_S_norm = step(A, B, C, D, current_Q, S, W, x_vals_mat, y_vals_mat, J_vals_mat,
+                              dxi_dx_mat, dxi_dy_mat, deta_dx_mat, deta_dy_mat, s2, drr, drp,
+                              rspec, qv, dd);
+        if (iteration == 0) {
+            first_S_norm = current_S_norm;
+        }
         advance_Q(next_Q, current_Q, S, x_vals_mat, y_vals_mat);
         copy_3Dmat_to_3Dmat(current_Q, next_Q);
         apply_BC(current_Q, x_vals_mat, y_vals_mat);
-        dprintINT(iteration);
+        
+        printf("%d: %f\n", iteration, current_S_norm);
+
+        if (current_S_norm / first_S_norm < 1e-5) {
+            break;
+        }
     }
     
     // int layer = 2;
@@ -1554,12 +1553,12 @@ void LHSY(double *A, double *B, double *C, double *Q, double *x_vals_mat,
 
 }
 
-int btri4s(float *a, float *b, float *c, float *f, int kd, int ks, int ke)
+int btri4s(double *a, double *b, double *c, double *f, int kd, int ks, int ke)
 {
   /* Local variables */
   int k, m, n, nd, md;
 
-  float c1, d1, d2, d3, d4, c2, c3, c4, b11, b21, b22, b31, b32, b33, 
+  double c1, d1, d2, d3, d4, c2, c3, c4, b11, b21, b22, b31, b32, b33, 
     b41, b42, b43, b44, u12, u13, u14, u23, u24, u34;
   
   
@@ -1694,7 +1693,26 @@ int btri4s(float *a, float *b, float *c, float *f, int kd, int ks, int ke)
   
 }
 
-void step(double *A, double *B, double *C, double *D, double *current_Q,
+double calculate_S_norm(double *S)
+{
+    double sum = 0, value;
+
+    for (int i = 0; i < ni; i++) {
+        for (int j = 0; j < nj; j++) {
+            for (int k = 0; k < 4; k++) {
+                value = S[offset3d(i, j, k, ni, nj)];
+                sum += value * value;
+                // dprintD(value);
+            }
+        }
+    }
+    dprintD(sum);
+
+    return sqrt(sum);
+}
+
+/* returns S_Norm */
+double step(double *A, double *B, double *C, double *D, double *current_Q,
           double *S, double *W, double * x_vals_mat, double *y_vals_mat,
           double *J_vals_mat, double *dxi_dx_mat, double *dxi_dy_mat,
           double *deta_dx_mat, double *deta_dy_mat, double *s2,
@@ -1714,7 +1732,31 @@ void step(double *A, double *B, double *C, double *D, double *current_Q,
                 D[offset2d(i, k, max_ni_nj)] = S[offset3d(i, j, k, ni, nj)];
             }
         }
-        /* TODO: matrix invertion */
-
+        btri4s(A, B, C, D, ni, 1, ni - 2);
+        for (i = 0; i < ni; i++) {
+            for (k = 0; k < 4; k++) {
+                S[offset3d(i, j, k, ni, nj)] = D[offset2d(i, k, max_ni_nj)];
+            }
+        }
     }
+    print_layer_of_mat3D(S, 1);
+
+/* eta inversions */
+    for (i = 1; i < ni - 1; i++) {
+        LHSY(A, B, C, current_Q, x_vals_mat, y_vals_mat, deta_dx_mat, deta_dy_mat,
+             J_vals_mat, drr, drp, rspec, qv, dd, i);
+        for (j = 0; j < nj; j++) {
+            for (k = 0; k < 4; k++) {
+                D[offset2d(j, k, max_ni_nj)] = S[offset3d(i, j, k, ni, nj)];
+            }
+        }
+        btri4s(A, B, C, D, nj, 1, nj - 2);
+        for (j = 0; j < nj; j++) {
+            for (k = 0; k < 4; k++) {
+                S[offset3d(i, j, k, ni, nj)] = D[offset2d(j, k, max_ni_nj)];
+            }
+        }
+    }
+
+    return calculate_S_norm(S);
 }
