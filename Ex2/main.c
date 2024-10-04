@@ -139,7 +139,7 @@ int main(int argc, char const *argv[])
     double *x_vals_mat, *y_vals_mat, *J_vals_mat, *first_Q,
     *current_Q, *next_Q, *S, *W, *dxi_dx_mat, *dxi_dy_mat, *deta_dx_mat,
     *deta_dy_mat, *s2, *rspec, *qv, *dd, *U_mat, *V_mat, *A, *B, *C, *D,
-    *drr, *drp, first_S_norm, current_S_norm;
+    *drr, *drp, max_S_norm = 0, current_S_norm;
     
     int i_index, j_index, k_index;
 
@@ -363,23 +363,39 @@ int main(int argc, char const *argv[])
     initialize_flow_field(current_Q);
     copy_3Dmat_to_3Dmat(first_Q, current_Q);
     
-    for (int iteration = 0; iteration < 0.5e1; iteration++) {
+    for (int iteration = 0; iteration < 0.5e4; iteration++) {
         current_S_norm = step(A, B, C, D, current_Q, S, W, x_vals_mat, y_vals_mat, J_vals_mat,
                               dxi_dx_mat, dxi_dy_mat, deta_dx_mat, deta_dy_mat, s2, drr, drp,
                               rspec, qv, dd);
-        if (iteration == 0) {
-            first_S_norm = current_S_norm;
+        if (max_S_norm < abs(current_S_norm)) {
+            max_S_norm = abs(current_S_norm);
         }
+        /*test*/
+        for (int j = nj-1; j >=0; j--) {
+            for (int i = 0; i < ni; i++) {
+                if (i == i_LE) {
+                    printf("  ");
+                }
+                double e = current_Q[offset3d(i, j, 3, ni, nj)];
+                double rho = current_Q[offset3d(i, j, 0, ni, nj)]; 
+                double u, v;
+                calculate_u_and_v(&u, &v, current_Q, i, j);
+                double p = calculate_p(e, rho, u, v);
+                printf("%g ", p);
+            }
+            printf("\n");
+        }
+        /*test*/
         apply_BC(current_Q, x_vals_mat, y_vals_mat);
-        // print_layer_of_mat3D(S, 0);
         advance_Q(next_Q, current_Q, S, x_vals_mat, y_vals_mat);
         copy_3Dmat_to_3Dmat(current_Q, next_Q);
         
         printf("%d: %f\n", iteration, current_S_norm);
 
-        if (current_S_norm / first_S_norm < 1e-5 || current_S_norm == 0 || isnan(current_S_norm)) {
+        if (abs(current_S_norm) / max_S_norm < 1e-5 || current_S_norm == 0 || isnan(current_S_norm)) {
             break;
         }
+
     }
 
     // int layer = 2;
@@ -1075,7 +1091,7 @@ void apply_BC(double *Q, double *x_vals_mat, double *y_vals_mat)
     e_iTEL_jTEL, rho_iTEL_jTEL, u_iTEL_jTEL, v_iTEL_jTEL, p_iTEL_jTEL,
     e_iTE_jTE, rho_iTE_jTE, u_iTE_jTE, v_iTE_jTE, p_iTE_jTE;
 /* wall BC */
-    for (i = i_TEL; i <= i_TEU; i++) {
+    for (i = i_TEL + 1; i < i_TEU; i++) {
         j = j_LE;
         calculate_u_and_v(&u_j1, &v_j1, Q, i, j+1);        
         contravariant_velocities(&U1, &V1, x_vals_mat, y_vals_mat, Q, i, j+1);
@@ -1143,9 +1159,9 @@ void apply_BC(double *Q, double *x_vals_mat, double *y_vals_mat)
 
     Q[offset3d(i_TEL, j_TEL, 0, ni, nj)] = rho_iTE_jTE;
     Q[offset3d(i_TEU, j_TEU, 0, ni, nj)] = rho_iTE_jTE;
-    Q[offset3d(i_TEL, j_TEU, 1, ni, nj)] = rho_iTE_jTE * u_iTE_jTE;
     Q[offset3d(i_TEL, j_TEL, 1, ni, nj)] = rho_iTE_jTE * u_iTE_jTE;
-    Q[offset3d(i_TEU, j_TEL, 2, ni, nj)] = rho_iTE_jTE * v_iTE_jTE;
+    Q[offset3d(i_TEU, j_TEU, 1, ni, nj)] = rho_iTE_jTE * u_iTE_jTE;
+    Q[offset3d(i_TEL, j_TEL, 2, ni, nj)] = rho_iTE_jTE * v_iTE_jTE;
     Q[offset3d(i_TEU, j_TEU, 2, ni, nj)] = rho_iTE_jTE * v_iTE_jTE;
     Q[offset3d(i_TEL, j_TEL, 3, ni, nj)] = e_iTE_jTE;
     Q[offset3d(i_TEU, j_TEU, 3, ni, nj)] = e_iTE_jTE;
