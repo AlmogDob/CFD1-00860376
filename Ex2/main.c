@@ -370,10 +370,10 @@ int main(int argc, char const *argv[])
         if (iteration == 0) {
             first_S_norm = current_S_norm;
         }
+        apply_BC(current_Q, x_vals_mat, y_vals_mat);
         // print_layer_of_mat3D(S, 0);
         advance_Q(next_Q, current_Q, S, x_vals_mat, y_vals_mat);
         copy_3Dmat_to_3Dmat(current_Q, next_Q);
-        apply_BC(current_Q, x_vals_mat, y_vals_mat);
         
         printf("%d: %f\n", iteration, current_S_norm);
 
@@ -381,7 +381,7 @@ int main(int argc, char const *argv[])
             break;
         }
     }
-    
+
     // int layer = 2;
     // print_layer_of_mat3D(first_Q, layer);
     // print_layer_of_mat3D(current_Q, layer);
@@ -1458,6 +1458,11 @@ void LHSX(double *A, double *B, double *C, double *Q, double *x_vals_mat,
                     C[offset3d(i, m, n, max_ni_nj, 4)] = 0;
             }
         }
+        rspec[i] = 0;
+        qv[i] = 0;
+        dd[i] = 0;
+        drr[i] = 0;
+        drp[i] = 0;
     }
 
     for (i = 0; i < ni; i++) {
@@ -1549,6 +1554,11 @@ void LHSY(double *A, double *B, double *C, double *Q, double *x_vals_mat,
                     C[offset3d(j, m, n, max_ni_nj, 4)] = 0;
             }
         }
+        rspec[i] = 0;
+        qv[i] = 0;
+        dd[i] = 0;
+        drr[i] = 0;
+        drp[i] = 0;
     }
 
     for (j = 0; j < nj; j++) {
@@ -1771,6 +1781,23 @@ double step(double *A, double *B, double *C, double *D, double *current_Q,
     for (j = 1; j < nj - 1; j++) {
         LHSX(A, B, C, current_Q, x_vals_mat, y_vals_mat, J_vals_mat,
              dxi_dx_mat, dxi_dy_mat, drr, drp, rspec, qv, dd, j);
+        /*test*/
+        // if (j == 1) {
+        //     dprintINT(j);
+        //     printf("##########____C____##########\n");
+        //     for (int i = 0; i < ni; i++) {
+        //         dprintINT(i);
+        //         for (int m = 0; m < 4; m++) {
+        //             for (int n = 0; n < 4; n++) {
+        //                 printf("%g ", C[offset3d(i, m, n, ni, 4)]);
+        //             }
+        //             printf("\n");
+        //         }
+        //         printf("\n");
+        //     }
+        //     printf("\n");
+        // }
+        /*test*/
         if (smoothx(current_Q, dxi_dx_mat, dxi_dy_mat, ni, nj, A, B, C,
                     j, J_vals_mat, drr, drp, rspec, qv, dd, epsi, Gamma,
                     Mach_inf, delta_t)) {
@@ -1786,12 +1813,12 @@ double step(double *A, double *B, double *C, double *D, double *current_Q,
         /*test*/
         if (j == 1) {
             dprintINT(j);
-            printf("##########____C____##########\n");
+            printf("##########____B____##########\n");
             for (int i = 0; i < ni; i++) {
                 dprintINT(i);
                 for (int m = 0; m < 4; m++) {
                     for (int n = 0; n < 4; n++) {
-                        printf("%g ", C[offset3d(i, m, n, ni, 4)]);
+                        printf("%g ", B[offset3d(i, m, n, ni, 4)]);
                     }
                     printf("\n");
                 }
