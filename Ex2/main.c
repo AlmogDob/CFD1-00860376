@@ -1219,25 +1219,25 @@ void calculate_A_hat_j_const(double *dst, double *Q, double *x_vals_mat,
     gamma2 = Gamma - 2;
     beta = Gamma * energy / rho - phi_square;
 
-    dst[offset3d(0, 0, i, 4, 4)] = 0;
-    dst[offset3d(0, 1, i, 4, 4)] = dxi_dx;
-    dst[offset3d(0, 2, i, 4, 4)] = dxi_dy;
-    dst[offset3d(0, 3, i, 4, 4)] = 0;
+    dst[offset3d(i, 0, 0, ni, 4)] = 0;
+    dst[offset3d(i, 0, 1, ni, 4)] = dxi_dx;
+    dst[offset3d(i, 0, 2, ni, 4)] = dxi_dy;
+    dst[offset3d(i, 0, 3, ni, 4)] = 0;
 
-    dst[offset3d(1, 0, i, 4, 4)] = dxi_dx * phi_square - u * theta;
-    dst[offset3d(1, 1, i, 4, 4)] = theta - dxi_dx * gamma2 * u;
-    dst[offset3d(1, 2, i, 4, 4)] = dxi_dy * u - gamma1 * dxi_dx * v;
-    dst[offset3d(1, 3, i, 4, 4)] = dxi_dx * gamma1;
+    dst[offset3d(i, 1, 0, ni, 4)] = dxi_dx * phi_square - u * theta;
+    dst[offset3d(i, 1, 1, ni, 4)] = theta - dxi_dx * gamma2 * u;
+    dst[offset3d(i, 1, 2, ni, 4)] = dxi_dy * u - gamma1 * dxi_dx * v;
+    dst[offset3d(i, 1, 3, ni, 4)] = dxi_dx * gamma1;
 
-    dst[offset3d(2, 0, i, 4, 4)] = dxi_dy * phi_square - v * theta;
-    dst[offset3d(2, 1, i, 4, 4)] = dxi_dx * v - dxi_dy * gamma1 * u;
-    dst[offset3d(2, 2, i, 4, 4)] = theta - dxi_dy * gamma2 * v;
-    dst[offset3d(2, 3, i, 4, 4)] = dxi_dy * gamma1;
+    dst[offset3d(i, 2, 0, ni, 4)] = dxi_dy * phi_square - v * theta;
+    dst[offset3d(i, 2, 1, ni, 4)] = dxi_dx * v - dxi_dy * gamma1 * u;
+    dst[offset3d(i, 2, 2, ni, 4)] = theta - dxi_dy * gamma2 * v;
+    dst[offset3d(i, 2, 3, ni, 4)] = dxi_dy * gamma1;
 
-    dst[offset3d(3, 0, i, 4, 4)] = theta * (2 * phi_square - Gamma * energy / rho);
-    dst[offset3d(3, 1, i, 4, 4)] = dxi_dx * beta - gamma1 * u * theta;
-    dst[offset3d(3, 2, i, 4, 4)] = dxi_dy * beta - gamma1 * v * theta;
-    dst[offset3d(3, 3, i, 4, 4)] = Gamma * theta;
+    dst[offset3d(i, 3, 0, ni, 4)] = theta * (2 * phi_square - Gamma * energy / rho);
+    dst[offset3d(i, 3, 1, ni, 4)] = dxi_dx * beta - gamma1 * u * theta;
+    dst[offset3d(i, 3, 2, ni, 4)] = dxi_dy * beta - gamma1 * v * theta;
+    dst[offset3d(i, 3, 3, ni, 4)] = Gamma * theta;
 
 }
 
@@ -1267,25 +1267,25 @@ void calculate_B_hat_i_const(double *dst, double *Q, double *x_vals_mat,
     gamma2 = Gamma - 2;
     beta = Gamma * energy / rho - phi_square;
 
-    dst[offset3d(0, 0, j, 4, 4)] = 0;
-    dst[offset3d(0, 1, j, 4, 4)] = deta_dx;
-    dst[offset3d(0, 2, j, 4, 4)] = deta_dy;
-    dst[offset3d(0, 3, j, 4, 4)] = 0;
+    dst[offset3d(j, 0, 0, nj, 4)] = 0;
+    dst[offset3d(j, 0, 1, nj, 4)] = deta_dx;
+    dst[offset3d(j, 0, 2, nj, 4)] = deta_dy;
+    dst[offset3d(j, 0, 3, nj, 4)] = 0;
 
-    dst[offset3d(1, 0, j, 4, 4)] = deta_dx * phi_square - u * theta;
-    dst[offset3d(1, 1, j, 4, 4)] = theta - deta_dx * gamma2 * u;
-    dst[offset3d(1, 2, j, 4, 4)] = deta_dy * u - gamma1 * deta_dx * v;
-    dst[offset3d(1, 3, j, 4, 4)] = deta_dx * gamma1;
+    dst[offset3d(j, 1, 0, nj, 4)] = deta_dx * phi_square - u * theta;
+    dst[offset3d(j, 1, 1, nj, 4)] = theta - deta_dx * gamma2 * u;
+    dst[offset3d(j, 1, 2, nj, 4)] = deta_dy * u - gamma1 * deta_dx * v;
+    dst[offset3d(j, 1, 3, nj, 4)] = deta_dx * gamma1;
 
-    dst[offset3d(2, 0, j, 4, 4)] = deta_dy * phi_square - v * theta;
-    dst[offset3d(2, 1, j, 4, 4)] = deta_dx * v - deta_dy * gamma1 * u;
-    dst[offset3d(2, 2, j, 4, 4)] = theta - deta_dy * gamma2 * v;
-    dst[offset3d(2, 3, j, 4, 4)] = deta_dy * gamma1;
+    dst[offset3d(j, 2, 0, nj, 4)] = deta_dy * phi_square - v * theta;
+    dst[offset3d(j, 2, 1, nj, 4)] = deta_dx * v - deta_dy * gamma1 * u;
+    dst[offset3d(j, 2, 2, nj, 4)] = theta - deta_dy * gamma2 * v;
+    dst[offset3d(j, 2, 3, nj, 4)] = deta_dy * gamma1;
 
-    dst[offset3d(3, 0, j, 4, 4)] = theta * (2 * phi_square - Gamma * energy / rho);
-    dst[offset3d(3, 1, j, 4, 4)] = deta_dx * beta - gamma1 * u * theta;
-    dst[offset3d(3, 2, j, 4, 4)] = deta_dy * beta - gamma1 * v * theta;
-    dst[offset3d(3, 3, j, 4, 4)] = Gamma * theta;
+    dst[offset3d(j, 3, 0, nj, 4)] = theta * (2 * phi_square - Gamma * energy / rho);
+    dst[offset3d(j, 3, 1, nj, 4)] = deta_dx * beta - gamma1 * u * theta;
+    dst[offset3d(j, 3, 2, nj, 4)] = deta_dy * beta - gamma1 * v * theta;
+    dst[offset3d(j, 3, 3, nj, 4)] = Gamma * theta;
 }
 
 int smoothx(double *q, double *xx, double *xy, int id, int jd, double *a,
@@ -1444,38 +1444,39 @@ void LHSX(double *A, double *B, double *C, double *Q, double *x_vals_mat,
     for (i = 0; i < ni; i++) {
         calculate_A_hat_j_const(B, Q, x_vals_mat, y_vals_mat, i, j);
     }
-    /*test*/
-    printf("##########____B____##########\n");
-    for (i = 0; i < ni; i++) {
-        for (n = 0; n < 4; n++) {
-            for (m = 0; m < 4; m++) {
-                printf("%g ", B[offset3d(m, n, i, 4, 4)]);
-            }
-            printf("\n");
-        }
-        printf("\n");
-    }
-        printf("\n");
-    /*test*/
     for (i = 1; i < ni - 1; i++) {
         for (n = 0; n < 4; n++) {
             for (m = 0; m < 4; m++) {
-                    A[offset3d(n, m ,i, 4, 4)] = -delta_t * 0.5 * B[offset3d(n, m, i-1, 4, 4)];
-                    C[offset3d(n, m ,i, 4, 4)] =  delta_t * 0.5 * B[offset3d(n, m, i+1, 4, 4)];
+                    A[offset3d(i, m, n, ni, 4)] = - 0.5 * B[offset3d(i-1, m, n, ni, 4)];
+                    C[offset3d(i, m, n, ni, 4)] =   0.5 * B[offset3d(i+1, m, n, ni, 4)];
             }
         }
     }
+    /*test*/
+    // printf("##########____C____##########\n");
+    // for (i = 0; i < ni; i++) {
+    //     for (m = 0; m < 4; m++) {
+    //         for (n = 0; n < 4; n++) {
+    //             printf("%g ", C[offset3d(i, m, n, ni, 4)]);
+    //         }
+    //         printf("\n");
+    //     }
+    //     printf("\n");
+    // }
+    // printf("\n");
+    /*test*/
     for (i = 0; i < ni; i++) {
         for (n = 0; n < 4; n++) {
             for (m = 0; m < 4; m++) {
                 if (n == m) {
-                    B[offset3d(n, m, i, 4, 4)] = 1;
+                    B[offset3d(i, m, n, ni, 4)] = 1;
                 } else {
-                    B[offset3d(n, m, i, 4, 4)] = 0;
+                    B[offset3d(i, m, n, ni, 4)] = 0;
                 }
             }
         }
     }
+
 
 /* fill jacobian matrix */
     for (i = 0; i < ni; i++) {
@@ -1503,6 +1504,19 @@ void LHSX(double *A, double *B, double *C, double *Q, double *x_vals_mat,
                 fprintf(stderr, "%s:%d: [Erorr] problem with smoothx in LHSX\n", __FILE__, __LINE__);
                 exit(1);
                }
+    /*test*/
+    printf("##########____C____##########\n");
+    for (i = 0; i < ni; i++) {
+        for (m = 0; m < 4; m++) {
+            for (n = 0; n < 4; n++) {
+                printf("%g ", C[offset3d(i, m, n, ni, 4)]);
+            }
+            printf("\n");
+        }
+        printf("\n");
+    }
+    printf("\n");
+    /*test*/
     
 }
 
@@ -1520,8 +1534,8 @@ void LHSY(double *A, double *B, double *C, double *Q, double *x_vals_mat,
     for (j = 1; j < nj - 1; j++) {
         for (n = 0; n < 4; n++) {
             for (m = 0; m < 4; m++) {
-                    A[offset3d(n, m ,j, 4, 4)] = -delta_t * 0.5 * B[offset3d(n, m, j-1, 4, 4)];
-                    C[offset3d(n, m ,j, 4, 4)] =  delta_t * 0.5 * B[offset3d(n, m, j+1, 4, 4)];
+                    A[offset3d(j, m, n, nj, 4)] = - 0.5 * B[offset3d(j-1, m, n, nj, 4)];
+                    C[offset3d(j, m, n, nj, 4)] =   0.5 * B[offset3d(j+1, m, n, nj, 4)];
             }
         }
     }
@@ -1529,9 +1543,9 @@ void LHSY(double *A, double *B, double *C, double *Q, double *x_vals_mat,
         for (n = 0; n < 4; n++) {
             for (m = 0; m < 4; m++) {
                 if (n == m) {
-                    B[offset3d(n, m, j, 4, 4)] = 1;
+                    B[offset3d(j, m, n, nj, 4)] = 1;
                 } else {
-                    B[offset3d(n, m, j, 4, 4)] = 0;
+                    B[offset3d(j, m, n, nj, 4)] = 0;
                 }
             }
         }
@@ -1737,7 +1751,7 @@ double step(double *A, double *B, double *C, double *D, double *current_Q,
         deta_dx_mat, deta_dy_mat, s2, rspec, qv, dd);
 
 /* xi inversions */
-    for (j = 1; j < nj - 1; j++) {
+    for (j = 1; j < 2/*nj - 1*/; j++) {
         LHSX(A, B, C, current_Q, x_vals_mat, y_vals_mat, J_vals_mat,
              dxi_dx_mat, dxi_dy_mat, drr, drp, rspec, qv, dd, j);
         // /*test*/
@@ -1771,7 +1785,6 @@ double step(double *A, double *B, double *C, double *D, double *current_Q,
         // }
         //     printf("\n");
         // /*test*/
-    // print_layer_of_mat3D(S, 1);
         for (k = 0; k < 4; k++) {
             for (i = 0; i < ni; i++) {
                 D[offset2d(i, k, max_ni_nj)] = S[offset3d(i, j, k, ni, nj)];
