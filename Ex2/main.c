@@ -1204,8 +1204,8 @@ void calculate_A_hat_j_const(double *dst, double *Q, double *x_vals_mat,
 
     calculate_u_and_v(&u, &v, Q, i, j);
 
-    dx_deta = first_deriv(x_vals_mat, 'j', i,j);
-    dy_deta = first_deriv(y_vals_mat, 'j', i,j);
+    dx_deta = first_deriv(x_vals_mat, 'j', i, j);
+    dy_deta = first_deriv(y_vals_mat, 'j', i, j);
 
     dxi_dx  =   J * dy_deta;
     dxi_dy  = - J * dx_deta;
