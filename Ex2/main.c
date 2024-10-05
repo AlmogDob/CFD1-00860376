@@ -363,14 +363,24 @@ int main(int argc, char const *argv[])
     initialize_flow_field(current_Q);
     copy_3Dmat_to_3Dmat(first_Q, current_Q);
     
-    for (int iteration = 0; iteration < 6; iteration++) {
-        apply_BC(current_Q, x_vals_mat, y_vals_mat);
+    for (int iteration = 0; iteration < 49; iteration++) {
+        // apply_BC(current_Q, x_vals_mat, y_vals_mat);
         current_S_norm = step(A, B, C, D, current_Q, S, W, x_vals_mat, y_vals_mat, J_vals_mat,
                               dxi_dx_mat, dxi_dy_mat, deta_dx_mat, deta_dy_mat, s2, drr, drp,
                               rspec, qv, dd);
         if (max_S_norm < abs(current_S_norm)) {
             max_S_norm = abs(current_S_norm);
         }
+        advance_Q(next_Q, current_Q, S, x_vals_mat, y_vals_mat);
+        copy_3Dmat_to_3Dmat(current_Q, next_Q);
+        
+        printf("%d: %f\n", iteration, current_S_norm);
+
+        if (abs(current_S_norm) / max_S_norm < 1e-5 || current_S_norm == 0 || isnan(current_S_norm)) {
+            break;
+        }
+
+    }
         /*test*/
         for (int j = nj-1; j >=0; j--) {
             for (int i = 0; i < ni; i++) {
@@ -387,16 +397,6 @@ int main(int argc, char const *argv[])
             printf("\n");
         }
         /*test*/
-        advance_Q(next_Q, current_Q, S, x_vals_mat, y_vals_mat);
-        copy_3Dmat_to_3Dmat(current_Q, next_Q);
-        
-        printf("%d: %f\n", iteration, current_S_norm);
-
-        if (abs(current_S_norm) / max_S_norm < 1e-5 || current_S_norm == 0 || isnan(current_S_norm)) {
-            break;
-        }
-
-    }
 
     // int layer = 2;
     // print_layer_of_mat3D(first_Q, layer);
@@ -746,8 +746,8 @@ void calculate_E_hat_at_a_point(double *E0, double *E1, double *E2,
     one_over_J = calculate_one_over_jacobian_at_a_point(x_vals_mat, y_vals_mat, i, j);
     dx_deta = first_deriv(x_vals_mat, 'j', i, j);
     dy_deta = first_deriv(y_vals_mat, 'j', i, j);
-    dxi_dx  =   1 / one_over_J * dy_deta;
-    dxi_dy  = - 1 / one_over_J * dx_deta;
+    dxi_dx  =   dy_deta / one_over_J;
+    dxi_dy  = - dx_deta / one_over_J;
     energy = Q[offset3d(i, j, 3, ni, nj)];
     rho = Q[offset3d(i, j, 0, ni, nj)];
     p = calculate_p(energy, rho, u, v);
@@ -779,8 +779,8 @@ void calculate_F_hat_at_a_point(double *F0, double *F1, double *F2,
     one_over_J = calculate_one_over_jacobian_at_a_point(x_vals_mat, y_vals_mat, i, j);
     dx_dxi = first_deriv(x_vals_mat, 'i', i, j);
     dy_dxi = first_deriv(y_vals_mat, 'i', i, j);
-    deta_dx = - 1 / one_over_J * dy_dxi;
-    deta_dy =   1 / one_over_J * dx_dxi;
+    deta_dx = - dy_dxi / one_over_J;
+    deta_dy =   dx_dxi / one_over_J;
     energy = Q[offset3d(i, j, 3, ni, nj)];
     rho = Q[offset3d(i, j, 0, ni, nj)];
     p = calculate_p(energy, rho, u, v);
@@ -837,11 +837,6 @@ void RHS(double *S, double *W, double *Q, double *x_vals_mat, double *y_vals_mat
             for (k = 0; k < 4; k++) {
                 S[offset3d(i, j, k, ni, nj)] = 0;
             }
-        }
-    }
-    for (i = 0; i < max_ni_nj; i++) {
-        for (j = 0; j < 4; j++) {
-            W[offset2d(i, j, max_ni_nj)] = 0;
         }
     }
 
