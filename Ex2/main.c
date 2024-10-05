@@ -363,7 +363,8 @@ int main(int argc, char const *argv[])
     initialize_flow_field(current_Q);
     copy_3Dmat_to_3Dmat(first_Q, current_Q);
     
-    for (int iteration = 0; iteration < 0.5e4; iteration++) {
+    for (int iteration = 0; iteration < 6; iteration++) {
+        apply_BC(current_Q, x_vals_mat, y_vals_mat);
         current_S_norm = step(A, B, C, D, current_Q, S, W, x_vals_mat, y_vals_mat, J_vals_mat,
                               dxi_dx_mat, dxi_dy_mat, deta_dx_mat, deta_dy_mat, s2, drr, drp,
                               rspec, qv, dd);
@@ -386,7 +387,6 @@ int main(int argc, char const *argv[])
             printf("\n");
         }
         /*test*/
-        apply_BC(current_Q, x_vals_mat, y_vals_mat);
         advance_Q(next_Q, current_Q, S, x_vals_mat, y_vals_mat);
         copy_3Dmat_to_3Dmat(current_Q, next_Q);
         
@@ -909,13 +909,13 @@ void RHS(double *S, double *W, double *Q, double *x_vals_mat, double *y_vals_mat
         }
     }
 
-    if (smooth(Q, S, J_vals_mat, dxi_dx_mat, dxi_dy_mat, deta_dx_mat,
-               deta_dy_mat, ni, nj, s2, rspec, qv, dd, epse, Gamma,
-               Mach_inf, delta_t)) {
-                /* returns zero on success */
-                fprintf(stderr, "%s:%d: [Erorr] problem with smooth in RHS\n", __FILE__, __LINE__);
-                exit(1);
-               }
+    // if (smooth(Q, S, J_vals_mat, dxi_dx_mat, dxi_dy_mat, deta_dx_mat,
+    //            deta_dy_mat, ni, nj, s2, rspec, qv, dd, epse, Gamma,
+    //            Mach_inf, delta_t)) {
+    //             /* returns zero on success */
+    //             fprintf(stderr, "%s:%d: [Erorr] problem with smooth in RHS\n", __FILE__, __LINE__);
+    //             exit(1);
+    //            }
 }
 
 void advance_Q(double *next_Q, double *current_Q ,double *S, double *x_vals_mat,
@@ -1794,99 +1794,99 @@ double step(double *A, double *B, double *C, double *D, double *current_Q,
         deta_dx_mat, deta_dy_mat, s2, rspec, qv, dd);
 
 /* xi inversions */
-    for (j = 1; j < nj - 1; j++) {
-        LHSX(A, B, C, current_Q, x_vals_mat, y_vals_mat, J_vals_mat,
-             dxi_dx_mat, dxi_dy_mat, drr, drp, rspec, qv, dd, j);
-        /*test*/
-        // if (j == 1) {
-        //     dprintINT(j);
-        //     printf("##########____C____##########\n");
-        //     for (int i = 0; i < ni; i++) {
-        //         dprintINT(i);
-        //         for (int m = 0; m < 4; m++) {
-        //             for (int n = 0; n < 4; n++) {
-        //                 printf("%g ", C[offset3d(i, m, n, ni, 4)]);
-        //             }
-        //             printf("\n");
-        //         }
-        //         printf("\n");
-        //     }
-        //     printf("\n");
-        // }
-        /*test*/
-        if (smoothx(current_Q, dxi_dx_mat, dxi_dy_mat, ni, nj, A, B, C,
-                    j, J_vals_mat, drr, drp, rspec, qv, dd, epsi, Gamma,
-                    Mach_inf, delta_t)) {
-                    /* returns zero on success */
-                    fprintf(stderr, "%s:%d: [Erorr] problem with smoothx in LHSX\n", __FILE__, __LINE__);
-                    exit(1);
-                }
-        for (k = 0; k < 4; k++) {
-            for (i = 0; i < ni; i++) {
-                D[offset2d(i, k, max_ni_nj)] = S[offset3d(i, j, k, ni, nj)];
-            }
-        }
-        /*test*/
-        if (j == 1) {
-            dprintINT(j);
-            printf("##########____B____##########\n");
-            for (int i = 0; i < ni; i++) {
-                dprintINT(i);
-                for (int m = 0; m < 4; m++) {
-                    for (int n = 0; n < 4; n++) {
-                        printf("%g ", B[offset3d(i, m, n, ni, 4)]);
-                    }
-                    printf("\n");
-                }
-                printf("\n");
-            }
-            printf("\n");
-        }
-        /*test*/
+//     for (j = 1; j < nj - 1; j++) {
+//         LHSX(A, B, C, current_Q, x_vals_mat, y_vals_mat, J_vals_mat,
+//              dxi_dx_mat, dxi_dy_mat, drr, drp, rspec, qv, dd, j);
+//         /*test*/
+//         // if (j == 1) {
+//         //     dprintINT(j);
+//         //     printf("##########____C____##########\n");
+//         //     for (int i = 0; i < ni; i++) {
+//         //         dprintINT(i);
+//         //         for (int m = 0; m < 4; m++) {
+//         //             for (int n = 0; n < 4; n++) {
+//         //                 printf("%g ", C[offset3d(i, m, n, ni, 4)]);
+//         //             }
+//         //             printf("\n");
+//         //         }
+//         //         printf("\n");
+//         //     }
+//         //     printf("\n");
+//         // }
+//         /*test*/
+//         if (smoothx(current_Q, dxi_dx_mat, dxi_dy_mat, ni, nj, A, B, C,
+//                     j, J_vals_mat, drr, drp, rspec, qv, dd, epsi, Gamma,
+//                     Mach_inf, delta_t)) {
+//                     /* returns zero on success */
+//                     fprintf(stderr, "%s:%d: [Erorr] problem with smoothx in LHSX\n", __FILE__, __LINE__);
+//                     exit(1);
+//                 }
+//         for (k = 0; k < 4; k++) {
+//             for (i = 0; i < ni; i++) {
+//                 D[offset2d(i, k, max_ni_nj)] = S[offset3d(i, j, k, ni, nj)];
+//             }
+//         }
+//         /*test*/
+//         if (j == 1) {
+//             dprintINT(j);
+//             printf("##########____B____##########\n");
+//             for (int i = 0; i < ni; i++) {
+//                 dprintINT(i);
+//                 for (int m = 0; m < 4; m++) {
+//                     for (int n = 0; n < 4; n++) {
+//                         printf("%g ", B[offset3d(i, m, n, ni, 4)]);
+//                     }
+//                     printf("\n");
+//                 }
+//                 printf("\n");
+//             }
+//             printf("\n");
+//         }
+//         /*test*/
 
-        btri4s(A, B, C, D, ni, 1, ni - 2);
+//         btri4s(A, B, C, D, ni, 1, ni - 2);
 
-        /*test*/
-        if (j == 1) {
-            dprintINT(j);
-            for (i = 0; i < ni; i++) {
-                for (k = 0; k < 4; k++) {
-                    printf("%g ", D[offset2d(i, k, max_ni_nj)]);
-                }
-                printf("\n");
-            }
-        }
-        /*test*/
+//         /*test*/
+//         if (j == 1) {
+//             dprintINT(j);
+//             for (i = 0; i < ni; i++) {
+//                 for (k = 0; k < 4; k++) {
+//                     printf("%g ", D[offset2d(i, k, max_ni_nj)]);
+//                 }
+//                 printf("\n");
+//             }
+//         }
+//         /*test*/
 
-        for (k = 0; k < 4; k++) {
-            for (i = 0; i < ni; i++) {
-                S[offset3d(i, j, k, ni, nj)] = D[offset2d(i, k, max_ni_nj)];
-            }
-        }
-    }
+//         for (k = 0; k < 4; k++) {
+//             for (i = 0; i < ni; i++) {
+//                 S[offset3d(i, j, k, ni, nj)] = D[offset2d(i, k, max_ni_nj)];
+//             }
+//         }
+//     }
 
-/* eta inversions */
-    for (i = 1; i < ni - 1; i++) {
-        LHSY(A, B, C, current_Q, x_vals_mat, y_vals_mat, deta_dx_mat, deta_dy_mat,
-             J_vals_mat, drr, drp, rspec, qv, dd, i);
-        if (smoothy(current_Q, deta_dx_mat, deta_dy_mat, ni,nj, A, B, C, i, J_vals_mat,
-                    drr, drp, rspec, qv, dd, epsi, Gamma, Mach_inf, delta_t)) {
-                    /* returns zero on success */
-                    fprintf(stderr, "%s:%d: [Erorr] problem with smoothy in LHSY\n", __FILE__, __LINE__);
-                    exit(1);
-                }
-        for (k = 0; k < 4; k++) {
-            for (j = 0; j < nj; j++) {
-                D[offset2d(j, k, max_ni_nj)] = S[offset3d(i, j, k, ni, nj)];
-            }
-        }
-        btri4s(A, B, C, D, nj, 1, nj - 2);
-        for (k = 0; k < 4; k++) {
-            for (j = 0; j < nj; j++) {
-                S[offset3d(i, j, k, ni, nj)] = D[offset2d(j, k, max_ni_nj)];
-            }
-        }
-    }
+// /* eta inversions */
+//     for (i = 1; i < ni - 1; i++) {
+//         LHSY(A, B, C, current_Q, x_vals_mat, y_vals_mat, deta_dx_mat, deta_dy_mat,
+//              J_vals_mat, drr, drp, rspec, qv, dd, i);
+//         if (smoothy(current_Q, deta_dx_mat, deta_dy_mat, ni,nj, A, B, C, i, J_vals_mat,
+//                     drr, drp, rspec, qv, dd, epsi, Gamma, Mach_inf, delta_t)) {
+//                     /* returns zero on success */
+//                     fprintf(stderr, "%s:%d: [Erorr] problem with smoothy in LHSY\n", __FILE__, __LINE__);
+//                     exit(1);
+//                 }
+//         for (k = 0; k < 4; k++) {
+//             for (j = 0; j < nj; j++) {
+//                 D[offset2d(j, k, max_ni_nj)] = S[offset3d(i, j, k, ni, nj)];
+//             }
+//         }
+//         btri4s(A, B, C, D, nj, 1, nj - 2);
+//         for (k = 0; k < 4; k++) {
+//             for (j = 0; j < nj; j++) {
+//                 S[offset3d(i, j, k, ni, nj)] = D[offset2d(j, k, max_ni_nj)];
+//             }
+//         }
+//     }
 
     return calculate_S_norm(S);
 }
