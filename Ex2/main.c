@@ -372,8 +372,7 @@ int main(int argc, char const *argv[])
                deta_dy_mat, x_vals_mat, y_vals_mat);
     copy_3Dmat_to_3Dmat(first_Q, current_Q);
     
-    for (int iteration = 0; iteration < 1e1; iteration++) {
-        apply_BC(current_Q, J_vals_mat, dxi_dx_mat, dxi_dy_mat, deta_dx_mat, deta_dy_mat);
+    for (int iteration = 0; iteration < 1e0; iteration++) {
         current_S_norm = step(A, B, C, D, current_Q, S, W, x_vals_mat, y_vals_mat, J_vals_mat,
                               dxi_dx_mat, dxi_dy_mat, deta_dx_mat, deta_dy_mat, s2, drr, drp,
                               rspec, qv, dd);
@@ -382,6 +381,7 @@ int main(int argc, char const *argv[])
         }
         advance_Q(next_Q, current_Q, S, J_vals_mat);
         copy_3Dmat_to_3Dmat(current_Q, next_Q);
+        // apply_BC(current_Q, J_vals_mat, dxi_dx_mat, dxi_dy_mat, deta_dx_mat, deta_dy_mat);
         
         printf("%d: %f\n", iteration, current_S_norm);
 
@@ -391,20 +391,20 @@ int main(int argc, char const *argv[])
 
     }
         /*test*/
-        for (int j = nj-1; j >=0; j--) {
-            for (int i = 0; i < ni; i++) {
-                if (i == i_LE) {
-                    printf("  ");
-                }
-                double e = current_Q[offset3d(i, j, 3, ni, nj)];
-                double rho = current_Q[offset3d(i, j, 0, ni, nj)]; 
-                double u, v;
-                calculate_u_and_v(&u, &v, current_Q, i, j);
-                double p = calculate_p(e, rho, u, v);
-                printf("%g ", p);
-            }
-            printf("\n");
-        }
+        // for (int j = nj-1; j >=0; j--) {
+        //     for (int i = 0; i < ni; i++) {
+        //         if (i == i_LE) {
+        //             printf("  ");
+        //         }
+        //         double e = current_Q[offset3d(i, j, 3, ni, nj)];
+        //         double rho = current_Q[offset3d(i, j, 0, ni, nj)]; 
+        //         double u, v;
+        //         calculate_u_and_v(&u, &v, current_Q, i, j);
+        //         double p = calculate_p(e, rho, u, v);
+        //         printf("%g ", p);
+        //     }
+        //     printf("\n");
+        // }
 
         // for (int i = 0; i < ni; i++) {
         //     for (int j = 0; j < nj; j++) {
@@ -415,7 +415,9 @@ int main(int argc, char const *argv[])
         //         V_mat[index] = V;
         //     }
         // }
-        // print_mat2D(U_mat);
+        // print_mat2D(V_mat);
+
+        print_mat2D(J_vals_mat);
         /*test*/
 
     // int layer = 2;
@@ -615,6 +617,9 @@ void print_mat2D(double *data)
 
     for (j_index = nj - 1; j_index >= 0; j_index--) {
         for (i_index = 0; i_index < ni; i_index++) {
+                if (i_index == i_LE) {
+                    printf("  ");
+                }
             printf("%g ", data[offset2d(i_index, j_index, ni)]);
         }
         printf("\n");
@@ -1067,8 +1072,8 @@ int i, k;
         deta_dy_j0 = deta_dy_mat[offset2d(i, 0, ni)];
         J_j0 = J_vals_mat[offset2d(i, 0, ni)];
 
-        u_j0 = (dxi_dx_j1 * u_j1 + dxi_dy_j1 * v_j1) / (dxi_dx_j0 - dxi_dy_j0 * deta_dx_j0 / deta_dy_j0);
-        v_j0 = -(dxi_dx_j1 * u_j1 + dxi_dy_j1 * v_j1) / (deta_dy_j0 / deta_dx_j0 * dxi_dx_j0 - dxi_dy_j0);
+        // u_j0 = (dxi_dx_j1 * u_j1 + dxi_dy_j1 * v_j1) / (dxi_dx_j0 - dxi_dy_j0 * deta_dx_j0 / deta_dy_j0);
+        // v_j0 = -(dxi_dx_j1 * u_j1 + dxi_dy_j1 * v_j1) / (deta_dy_j0 / deta_dx_j0 * dxi_dx_j0 - dxi_dy_j0);
         /*test*/
         u_j0 = U1 * deta_dy_j0 / J_j0;
         v_j0 = - U1 * deta_dx_j0 / J_j0;
