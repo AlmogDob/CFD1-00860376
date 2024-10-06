@@ -364,7 +364,7 @@ int main(int argc, char const *argv[])
     copy_3Dmat_to_3Dmat(first_Q, current_Q);
     
     for (int iteration = 0; iteration < 49; iteration++) {
-        // apply_BC(current_Q, x_vals_mat, y_vals_mat);
+        apply_BC(current_Q, x_vals_mat, y_vals_mat);
         current_S_norm = step(A, B, C, D, current_Q, S, W, x_vals_mat, y_vals_mat, J_vals_mat,
                               dxi_dx_mat, dxi_dy_mat, deta_dx_mat, deta_dy_mat, s2, drr, drp,
                               rspec, qv, dd);
@@ -828,7 +828,7 @@ void RHS(double *S, double *W, double *Q, double *x_vals_mat, double *y_vals_mat
          double *deta_dx_mat, double *deta_dy_mat, double *s2, double *rspec,
          double *qv, double *dd)
 {
-    int i, j, k, index, J;
+int i, j, k, index, J;
     double dx_dxi, dx_deta, dy_dxi, dy_deta;
 
     /* zeroing S and W*/
@@ -837,6 +837,11 @@ void RHS(double *S, double *W, double *Q, double *x_vals_mat, double *y_vals_mat
             for (k = 0; k < 4; k++) {
                 S[offset3d(i, j, k, ni, nj)] = 0;
             }
+        }
+    }
+    for (i = 0; i < max_ni_nj; i++) {
+        for (j = 0; j < 4; j++) {
+            W[offset2d(i, j, max_ni_nj)] = 0;
         }
     }
 
@@ -851,7 +856,7 @@ void RHS(double *S, double *W, double *Q, double *x_vals_mat, double *y_vals_mat
         }
         for (i = 1; i < ni - 1; i++) {
             for (k = 0; k < 4; k++) {
-                S[offset3d(i, j, k, ni, nj)] += -0.5 * (W[offset2d(i+1, k, max_ni_nj)] - W[offset2d(i-1, k, max_ni_nj)]);
+                S[offset3d(i, j, k, ni, nj)] += -delta_t * 0.5 * (W[offset2d(i+1, k, max_ni_nj)] - W[offset2d(i-1, k, max_ni_nj)]);
             }
         }
     } 
@@ -867,18 +872,10 @@ void RHS(double *S, double *W, double *Q, double *x_vals_mat, double *y_vals_mat
         }
         for (j = 1; j < nj - 1; j++) {
             for (k = 0; k < 4; k++) {
-                S[offset3d(i, j, k, ni, nj)] += -0.5 * (W[offset2d(j+1, k, max_ni_nj)] - W[offset2d(j-1, k, max_ni_nj)]);
+                S[offset3d(i, j, k, ni, nj)] += -delta_t * 0.5 * (W[offset2d(j+1, k, max_ni_nj)] - W[offset2d(j-1, k, max_ni_nj)]);
             }
         }
     }
-    for (i = 0; i < ni; i++) {
-        for (j = 0; j < nj; j++) {
-            for (k = 0; k < 4; k++) {
-                S[offset3d(i, j, k, ni, nj)] *= delta_t;
-            }
-        }
-    }
-
 
 /* fill jacobian matrix */
     for (i = 0; i < ni; i++) {
@@ -903,6 +900,86 @@ void RHS(double *S, double *W, double *Q, double *x_vals_mat, double *y_vals_mat
             deta_dy_mat[index] =   J * dx_dxi;
         }
     }
+
+    smooth(Q, S, J_vals_mat, dxi_dx_mat, dxi_dy_mat, deta_dx_mat, deta_dy_mat,
+           ni, nj, s2, rspec, qv, dd, epse, Gamma, Mach_inf, delta_t);
+
+
+//     int i, j, k, index, J;
+//     double dx_dxi, dx_deta, dy_dxi, dy_deta;
+
+//     /* zeroing S and W*/
+//     for (i = 0; i < ni; i++) {   
+//         for (j = 0; j < nj; j++) {
+//             for (k = 0; k < 4; k++) {
+//                 S[offset3d(i, j, k, ni, nj)] = 0;
+//             }
+//         }
+//     }
+
+//     /* xi direction (constant j) */
+//     for (j = 1; j < nj - 1; j++) {
+//         for (i = 0; i < ni; i++) {
+//             calculate_E_hat_at_a_point(&W[offset2d(i, 0, max_ni_nj)],
+//                                        &W[offset2d(i, 1, max_ni_nj)],
+//                                        &W[offset2d(i, 2, max_ni_nj)],
+//                                        &W[offset2d(i, 3, max_ni_nj)],
+//                                        x_vals_mat, y_vals_mat, Q, i, j);
+//         }
+//         for (i = 1; i < ni - 1; i++) {
+//             for (k = 0; k < 4; k++) {
+//                 S[offset3d(i, j, k, ni, nj)] += -0.5 * (W[offset2d(i+1, k, max_ni_nj)] - W[offset2d(i-1, k, max_ni_nj)]);
+//             }
+//         }
+//     } 
+
+//     /* eta direction (constant i) */
+//     for (i = 1; i < ni - 1; i++) {
+//         for (j = 0; j < nj; j++) {
+//             calculate_F_hat_at_a_point(&W[offset2d(j, 0, max_ni_nj)],
+//                                        &W[offset2d(j, 1, max_ni_nj)],
+//                                        &W[offset2d(j, 2, max_ni_nj)],
+//                                        &W[offset2d(j, 3, max_ni_nj)],
+//                                        x_vals_mat, y_vals_mat, Q, i, j);
+//         }
+//         for (j = 1; j < nj - 1; j++) {
+//             for (k = 0; k < 4; k++) {
+//                 S[offset3d(i, j, k, ni, nj)] += -0.5 * (W[offset2d(j+1, k, max_ni_nj)] - W[offset2d(j-1, k, max_ni_nj)]);
+//             }
+//         }
+//     }
+//     for (i = 0; i < ni; i++) {
+//         for (j = 0; j < nj; j++) {
+//             for (k = 0; k < 4; k++) {
+//                 S[offset3d(i, j, k, ni, nj)] *= delta_t;
+//             }
+//         }
+//     }
+
+
+// /* fill jacobian matrix */
+//     for (i = 0; i < ni; i++) {
+//         for (j = 0; j < nj; j++) {
+//             J_vals_mat[offset2d(i, j, ni)] = 1.0 / calculate_one_over_jacobian_at_a_point(x_vals_mat, y_vals_mat, i, j);
+//         }
+//     }
+// /* fille mertic coeffficients matrices */
+//     for (i = 0; i < ni; i++) {
+//         for (j = 0; j < nj; j++) {
+//             index = offset2d(i, j, ni);
+//             J = J_vals_mat[index];
+
+//             dx_dxi = first_deriv(x_vals_mat, 'i', i, j);
+//             dx_deta = first_deriv(x_vals_mat, 'j', i, j);
+//             dy_dxi = first_deriv(y_vals_mat, 'i', i, j);
+//             dy_deta = first_deriv(y_vals_mat, 'j', i, j);
+
+//             dxi_dx_mat[index]  =   J * dy_deta;
+//             dxi_dy_mat[index]  = - J * dx_deta;
+//             deta_dx_mat[index] = - J * dy_dxi;
+//             deta_dy_mat[index] =   J * dx_dxi;
+//         }
+//     }
 
     // if (smooth(Q, S, J_vals_mat, dxi_dx_mat, dxi_dy_mat, deta_dx_mat,
     //            deta_dy_mat, ni, nj, s2, rspec, qv, dd, epse, Gamma,
@@ -1077,7 +1154,7 @@ int smooth(double *q, double *s, double *jac, double *xx, double *xy,
 
 void apply_BC(double *Q, double *x_vals_mat, double *y_vals_mat)
 {
-    int i, j, k;
+int i, j, k;
     double J_j0, J_j1, u_j1, v_j1, e_j1, rho_j0, rho_j1, p_j0, e_j0, u_j0, v_j0,
     dx_dxi_j0, dx_deta_j0, dx_deta_j1, dy_dxi_j0, dy_deta_j0, dy_deta_j1,
     dxi_dx_j0, dxi_dx_j1, dxi_dy_j0, dxi_dy_j1, deta_dx_j0, deta_dy_j0,
@@ -1086,7 +1163,7 @@ void apply_BC(double *Q, double *x_vals_mat, double *y_vals_mat)
     e_iTEL_jTEL, rho_iTEL_jTEL, u_iTEL_jTEL, v_iTEL_jTEL, p_iTEL_jTEL,
     e_iTE_jTE, rho_iTE_jTE, u_iTE_jTE, v_iTE_jTE, p_iTE_jTE;
 /* wall BC */
-    for (i = i_TEL + 1; i < i_TEU; i++) {
+    for (i = i_TEL; i <= i_TEU; i++) {
         j = j_LE;
         calculate_u_and_v(&u_j1, &v_j1, Q, i, j+1);        
         contravariant_velocities(&U1, &V1, x_vals_mat, y_vals_mat, Q, i, j+1);
@@ -1154,9 +1231,9 @@ void apply_BC(double *Q, double *x_vals_mat, double *y_vals_mat)
 
     Q[offset3d(i_TEL, j_TEL, 0, ni, nj)] = rho_iTE_jTE;
     Q[offset3d(i_TEU, j_TEU, 0, ni, nj)] = rho_iTE_jTE;
+    Q[offset3d(i_TEL, j_TEU, 1, ni, nj)] = rho_iTE_jTE * u_iTE_jTE;
     Q[offset3d(i_TEL, j_TEL, 1, ni, nj)] = rho_iTE_jTE * u_iTE_jTE;
-    Q[offset3d(i_TEU, j_TEU, 1, ni, nj)] = rho_iTE_jTE * u_iTE_jTE;
-    Q[offset3d(i_TEL, j_TEL, 2, ni, nj)] = rho_iTE_jTE * v_iTE_jTE;
+    Q[offset3d(i_TEU, j_TEL, 2, ni, nj)] = rho_iTE_jTE * v_iTE_jTE;
     Q[offset3d(i_TEU, j_TEU, 2, ni, nj)] = rho_iTE_jTE * v_iTE_jTE;
     Q[offset3d(i_TEL, j_TEL, 3, ni, nj)] = e_iTE_jTE;
     Q[offset3d(i_TEU, j_TEU, 3, ni, nj)] = e_iTE_jTE;
@@ -1178,6 +1255,108 @@ void apply_BC(double *Q, double *x_vals_mat, double *y_vals_mat)
             Q[offset3d(ni-1, j, k, ni, nj)] = Q[offset3d(ni-1-1, j, k, ni, nj)];
         }
     }
+
+//     int i, j, k;
+//     double J_j0, J_j1, u_j1, v_j1, e_j1, rho_j0, rho_j1, p_j0, e_j0, u_j0, v_j0,
+//     dx_dxi_j0, dx_deta_j0, dx_deta_j1, dy_dxi_j0, dy_deta_j0, dy_deta_j1,
+//     dxi_dx_j0, dxi_dx_j1, dxi_dy_j0, dxi_dy_j1, deta_dx_j0, deta_dy_j0,
+//     U1, V1,
+//     e_iTEU_jTEU, rho_iTEU_jTEU, u_iTEU_jTEU, v_iTEU_jTEU, p_iTEU_jTEU,
+//     e_iTEL_jTEL, rho_iTEL_jTEL, u_iTEL_jTEL, v_iTEL_jTEL, p_iTEL_jTEL,
+//     e_iTE_jTE, rho_iTE_jTE, u_iTE_jTE, v_iTE_jTE, p_iTE_jTE;
+// /* wall BC */
+//     for (i = i_TEL + 1; i < i_TEU; i++) {
+//         j = j_LE;
+//         calculate_u_and_v(&u_j1, &v_j1, Q, i, j+1);        
+//         contravariant_velocities(&U1, &V1, x_vals_mat, y_vals_mat, Q, i, j+1);
+
+//         /* u_i,0 and v_i,0 */
+//         J_j0 = 1.0 / calculate_one_over_jacobian_at_a_point(x_vals_mat, y_vals_mat, i,j);
+//         J_j1 = 1.0 / calculate_one_over_jacobian_at_a_point(x_vals_mat, y_vals_mat, i,j+1);
+
+//         dx_dxi_j0  = first_deriv(x_vals_mat, 'i', i,j);
+//         dx_deta_j0 = first_deriv(x_vals_mat, 'j', i,j);
+//         dx_deta_j1 = first_deriv(x_vals_mat, 'j', i,j+1);
+//         dy_dxi_j0  = first_deriv(y_vals_mat, 'i', i,j);
+//         dy_deta_j0 = first_deriv(y_vals_mat, 'j', i,j);
+//         dy_deta_j1 = first_deriv(y_vals_mat, 'j', i,j+1);
+
+//         dxi_dx_j0  =   J_j0 * dy_deta_j0;
+//         dxi_dx_j1  =   J_j1 * dy_deta_j1;   
+//         dxi_dy_j0  = - J_j0 * dx_deta_j0;
+//         dxi_dy_j1  = - J_j1 * dx_deta_j1;
+//         deta_dx_j0 = - J_j0 * dy_dxi_j0;
+//         deta_dy_j0 =   J_j0 * dx_dxi_j0;
+
+//         // u_j0 = (dxi_dx_j1 * u_j1 + dxi_dy_j1 * v_j1) / (dxi_dx_j0 - dxi_dy_j0 * deta_dx_j0 / deta_dy_j0);
+//         // v_j0 = -(dxi_dx_j1 * u_j1 + dxi_dy_j1 * v_j1) / (deta_dy_j0 / deta_dx_j0 * dxi_dx_j0 - dxi_dy_j0);
+//         /*test*/
+//         u_j0 = U1 * deta_dy_j0 / J_j0;
+//         v_j0 = - U1 * deta_dx_j0 / J_j0;
+//         /*test*/
+
+//         /* rho_i,0 */
+//         rho_j1 = Q[offset3d(i, j+1, 0, ni, nj)];
+//         rho_j0 = rho_j1;
+        
+//         /* p_i,0 */
+//         e_j1 = Q[offset3d(i, j+1, 3, ni, nj)];
+//         p_j0 = calculate_p(e_j1, rho_j1, u_j1, v_j1);
+
+//         /* e_i,0*/
+//         e_j0 = p_j0 / (Gamma -1) + 0.5 * rho_j0 * (u_j0 * u_j0 + v_j0 *v_j0);
+
+//         Q[offset3d(i, j, 0, ni, nj)] = rho_j0;
+//         Q[offset3d(i, j, 1, ni, nj)] = rho_j0 * u_j0;
+//         Q[offset3d(i, j, 2, ni, nj)] = rho_j0 * v_j0;
+//         Q[offset3d(i, j, 3, ni, nj)] = e_j0;
+//     }
+
+// /* trailing edge */
+//     calculate_u_and_v(&u_iTEU_jTEU, &v_iTEU_jTEU, Q, i_TEU, j_TEU);
+//     calculate_u_and_v(&u_iTEL_jTEL, &v_iTEL_jTEL, Q, i_TEL, j_TEL);
+
+//     rho_iTEU_jTEU = Q[offset3d(i_TEU, j_TEU, 0, ni, nj)];
+//     rho_iTEL_jTEL = Q[offset3d(i_TEL, j_TEL, 0, ni, nj)];
+
+//     e_iTEU_jTEU = Q[offset3d(i_TEU, j_TEU, 3, ni, nj)];
+//     e_iTEL_jTEL = Q[offset3d(i_TEL, j_TEL, 3, ni, nj)];
+
+//     p_iTEU_jTEU = calculate_p(e_iTEU_jTEU, rho_iTEU_jTEU, u_iTEU_jTEU, v_iTEU_jTEU);
+//     p_iTEL_jTEL = calculate_p(e_iTEL_jTEL, rho_iTEL_jTEL, u_iTEL_jTEL, v_iTEL_jTEL);
+    
+//     p_iTE_jTE   = 0.5 * (p_iTEU_jTEU   + p_iTEL_jTEL);
+//     u_iTE_jTE   = 0.5 * (u_iTEU_jTEU   + u_iTEL_jTEL);
+//     v_iTE_jTE   = 0.5 * (v_iTEU_jTEU   + v_iTEL_jTEL);
+//     rho_iTE_jTE = 0.5 * (rho_iTEU_jTEU + rho_iTEL_jTEL);
+//     e_iTE_jTE   = calculate_energy(p_iTE_jTE, u_iTE_jTE, v_iTE_jTE, rho_iTE_jTE);
+
+//     Q[offset3d(i_TEL, j_TEL, 0, ni, nj)] = rho_iTE_jTE;
+//     Q[offset3d(i_TEU, j_TEU, 0, ni, nj)] = rho_iTE_jTE;
+//     Q[offset3d(i_TEL, j_TEL, 1, ni, nj)] = rho_iTE_jTE * u_iTE_jTE;
+//     Q[offset3d(i_TEU, j_TEU, 1, ni, nj)] = rho_iTE_jTE * u_iTE_jTE;
+//     Q[offset3d(i_TEL, j_TEL, 2, ni, nj)] = rho_iTE_jTE * v_iTE_jTE;
+//     Q[offset3d(i_TEU, j_TEU, 2, ni, nj)] = rho_iTE_jTE * v_iTE_jTE;
+//     Q[offset3d(i_TEL, j_TEL, 3, ni, nj)] = e_iTE_jTE;
+//     Q[offset3d(i_TEU, j_TEU, 3, ni, nj)] = e_iTE_jTE;
+
+// /* wake BC */
+//     for (i = 0; i < i_TEL; i++) {
+//         j = j_TEL;
+
+//         for (k = 0; k < 4; k++) {
+//             Q[offset3d(i, j, k, ni, nj)] = 0.5 * (Q[offset3d(i, j+1, k, ni, nj)] + Q[offset3d(ni-1-i, j+1, k, ni, nj)]);
+//             Q[offset3d(ni-1-i, j, k, ni, nj)] =  Q[offset3d(i, j, k, ni, nj)];
+//         }
+//     }
+
+// /* outflow BC */
+//     for (j = 0; j < nj; j++) {
+//         for (k = 0; k < 4; k++) {
+//             Q[offset3d(0, j, k, ni, nj)]    = Q[offset3d(1, j, k, ni, nj)];
+//             Q[offset3d(ni-1, j, k, ni, nj)] = Q[offset3d(ni-1-1, j, k, ni, nj)];
+//         }
+//     }
 }
 
 /* output data;
@@ -1785,8 +1964,10 @@ double step(double *A, double *B, double *C, double *D, double *current_Q,
 {
     int i, j, k;
 
-    RHS(S, W, current_Q, x_vals_mat, y_vals_mat, J_vals_mat, dxi_dx_mat, dxi_dy_mat,
-        deta_dx_mat, deta_dy_mat, s2, rspec, qv, dd);
+    RHS(S, W, current_Q, x_vals_mat, y_vals_mat, J_vals_mat, dxi_dx_mat,
+            dxi_dy_mat, deta_dx_mat, deta_dy_mat, s2, rspec, qv, dd);
+    // RHS(S, W, current_Q, x_vals_mat, y_vals_mat, J_vals_mat, dxi_dx_mat, dxi_dy_mat,
+    //     deta_dx_mat, deta_dy_mat, s2, rspec, qv, dd);
 
 /* xi inversions */
 //     for (j = 1; j < nj - 1; j++) {
