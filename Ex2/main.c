@@ -122,10 +122,9 @@ void LHSY(double *A, double *B, double *C, double *Q,
 int btri4s(double *a, double *b, double *c, double *f, int kd, int ks, int ke);
 double calculate_S_norm(double *S);
 double step(double *A, double *B, double *C, double *D, double *current_Q,
-          double *S, double *W, double * x_vals_mat, double *y_vals_mat,
-          double *J_vals_mat, double *dxi_dx_mat, double *dxi_dy_mat,
-          double *deta_dx_mat, double *deta_dy_mat, double *s2,
-          double *drr, double *drp, double *rspec, double *qv, double *dd);
+          double *S, double *W, double *J_vals_mat, double *dxi_dx_mat,
+          double *dxi_dy_mat, double *deta_dx_mat, double *deta_dy_mat,
+          double *s2, double *drr, double *drp, double *rspec, double *qv, double *dd);
 void matrices_coeffic_and_Jacobian(double *J_vals_mat, double *dxi_dx_mat,
                                    double *dxi_dy_mat, double *deta_dx_mat,
                                    double *deta_dy_mat, double *x_vals_mat,
@@ -372,24 +371,25 @@ int main(int argc, char const *argv[])
                deta_dy_mat, x_vals_mat, y_vals_mat);
     copy_3Dmat_to_3Dmat(first_Q, current_Q);
     
-    for (int iteration = 0; iteration < 1e0; iteration++) {
-        current_S_norm = step(A, B, C, D, current_Q, S, W, x_vals_mat, y_vals_mat, J_vals_mat,
-                              dxi_dx_mat, dxi_dy_mat, deta_dx_mat, deta_dy_mat, s2, drr, drp,
-                              rspec, qv, dd);
+    for (int iteration = 0; iteration < 6; iteration++) {
+        current_S_norm = step(A, B, C, D, current_Q, S, W, J_vals_mat,
+                              dxi_dx_mat, dxi_dy_mat, deta_dx_mat,
+                              deta_dy_mat, s2, drr, drp, rspec, qv, dd);
         if (max_S_norm < fabs(current_S_norm)) {
             max_S_norm = fabs(current_S_norm);
         }
         advance_Q(next_Q, current_Q, S, J_vals_mat);
         copy_3Dmat_to_3Dmat(current_Q, next_Q);
-        // apply_BC(current_Q, J_vals_mat, dxi_dx_mat, dxi_dy_mat, deta_dx_mat, deta_dy_mat);
+        apply_BC(current_Q, J_vals_mat, dxi_dx_mat, dxi_dy_mat, deta_dx_mat, deta_dy_mat);
         
         printf("%d: %f\n", iteration, current_S_norm);
 
-        // if (fabs(current_S_norm) / max_S_norm < 1e-5 || current_S_norm == 0 || isnan(current_S_norm)) {
-        //     break;
-        // }
-
+        if (fabs(current_S_norm) / max_S_norm < 1e-5 || current_S_norm == 0 || isnan(current_S_norm)) {
+            break;
+        }
     }
+    dprintD(max_S_norm);
+
         /*test*/
         // for (int j = nj-1; j >=0; j--) {
         //     for (int i = 0; i < ni; i++) {
@@ -406,18 +406,18 @@ int main(int argc, char const *argv[])
         //     printf("\n");
         // }
 
-        // for (int i = 0; i < ni; i++) {
-        //     for (int j = 0; j < nj; j++) {
-        //         double U, V;
-        //         contravariant_velocities(&U, &V, dxi_dx_mat, dxi_dy_mat, deta_dx_mat, deta_dy_mat, current_Q, i, j);
-        //         int index = offset2d(i, j, ni);
-        //         U_mat[index] = U;
-        //         V_mat[index] = V;
-        //     }
-        // }
-        // print_mat2D(V_mat);
+        for (int i = 0; i < ni; i++) {
+            for (int j = 0; j < nj; j++) {
+                double U, V;
+                contravariant_velocities(&U, &V, dxi_dx_mat, dxi_dy_mat, deta_dx_mat, deta_dy_mat, current_Q, i, j);
+                int index = offset2d(i, j, ni);
+                U_mat[index] = U;
+                V_mat[index] = V;
+            }
+        }
+        print_mat2D(U_mat);
 
-        print_mat2D(J_vals_mat);
+        // print_mat2D(J_vals_mat);
         /*test*/
 
     // int layer = 2;
@@ -662,8 +662,9 @@ double first_deriv(double *mat, char diraction, int i, int j)
             return mat[offset2d(i+1, j, ni)] - mat[offset2d(i, j, ni)]; /* (forward) first order first derivitive */
         } else if (i == i_max) {
             return mat[offset2d(i, j, ni)] - mat[offset2d(i-1, j, ni)]; /* (backward) first order first derivitive */
+        } else {
+            return (mat[offset2d(i+1, j, ni)] - mat[offset2d(i-1, j, ni)]) / (2); /* (central) second order first derivitive */
         }
-        return (mat[offset2d(i+1, j, ni)] - mat[offset2d(i-1, j, ni)]) / (2); /* (central) second order first derivitive */
     }
     return NAN;
 }
@@ -1675,10 +1676,9 @@ double calculate_S_norm(double *S)
 
 /* returns S_Norm */
 double step(double *A, double *B, double *C, double *D, double *current_Q,
-          double *S, double *W, double * x_vals_mat, double *y_vals_mat,
-          double *J_vals_mat, double *dxi_dx_mat, double *dxi_dy_mat,
-          double *deta_dx_mat, double *deta_dy_mat, double *s2,
-          double *drr, double *drp, double *rspec, double *qv, double *dd)
+          double *S, double *W, double *J_vals_mat, double *dxi_dx_mat,
+          double *dxi_dy_mat, double *deta_dx_mat, double *deta_dy_mat,
+          double *s2, double *drr, double *drp, double *rspec, double *qv, double *dd)
 {
     int i, j, k;
 
@@ -1794,7 +1794,7 @@ void matrices_coeffic_and_Jacobian(double *J_vals_mat, double *dxi_dx_mat,
             double dy_dxi = first_deriv(y_vals_mat, 'i', i, j);
             double dy_deta = first_deriv(y_vals_mat, 'j', i, j);
 
-            double J = 1.0 / (dx_dxi * dy_deta - dy_deta * dx_deta);
+            double J = 1.0 / (dx_dxi * dy_deta - dy_dxi * dx_deta);
             J_vals_mat[index] = J;
 
             dxi_dx_mat[index]  =   J * dy_deta;
