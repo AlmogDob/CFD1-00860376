@@ -391,31 +391,31 @@ int main(int argc, char const *argv[])
     dprintD(max_S_norm);
 
         /*test*/
-        // for (int j = nj-1; j >=0; j--) {
-        //     for (int i = 0; i < ni; i++) {
-        //         if (i == i_LE) {
-        //             printf("  ");
-        //         }
-        //         double e = current_Q[offset3d(i, j, 3, ni, nj)];
-        //         double rho = current_Q[offset3d(i, j, 0, ni, nj)]; 
-        //         double u, v;
-        //         calculate_u_and_v(&u, &v, current_Q, i, j);
-        //         double p = calculate_p(e, rho, u, v);
-        //         printf("%g ", p);
-        //     }
-        //     printf("\n");
-        // }
-
-        for (int i = 0; i < ni; i++) {
-            for (int j = 0; j < nj; j++) {
-                double U, V;
-                contravariant_velocities(&U, &V, dxi_dx_mat, dxi_dy_mat, deta_dx_mat, deta_dy_mat, current_Q, i, j);
-                int index = offset2d(i, j, ni);
-                U_mat[index] = U;
-                V_mat[index] = V;
+        for (int j = nj-1; j >=0; j--) {
+            for (int i = 0; i < ni; i++) {
+                if (i == i_LE) {
+                    printf("  ");
+                }
+                double e = current_Q[offset3d(i, j, 3, ni, nj)];
+                double rho = current_Q[offset3d(i, j, 0, ni, nj)]; 
+                double u, v;
+                calculate_u_and_v(&u, &v, current_Q, i, j);
+                double p = calculate_p(e, rho, u, v);
+                printf("%g ", p);
             }
+            printf("\n");
         }
-        print_mat2D(U_mat);
+
+        // for (int i = 0; i < ni; i++) {
+        //     for (int j = 0; j < nj; j++) {
+        //         double U, V;
+        //         contravariant_velocities(&U, &V, dxi_dx_mat, dxi_dy_mat, deta_dx_mat, deta_dy_mat, current_Q, i, j);
+        //         int index = offset2d(i, j, ni);
+        //         U_mat[index] = U;
+        //         V_mat[index] = V;
+        //     }
+        // }
+        // print_mat2D(U_mat);
 
         // print_mat2D(J_vals_mat);
         /*test*/
@@ -1051,7 +1051,7 @@ int smooth(double *q, double *s, double *jac, double *xx, double *xy,
 void apply_BC(double *Q, double *J_vals_mat, double *dxi_dx_mat,
               double *dxi_dy_mat, double *deta_dx_mat, double *deta_dy_mat)
 {
-int i, k;
+    int i, k;
     double J_j0, u_j1, v_j1, e_j1, rho_j0, rho_j1, p_j0, e_j0, u_j0, v_j0,
     dxi_dx_j0, dxi_dx_j1, dxi_dy_j0, dxi_dy_j1, deta_dx_j0, deta_dy_j0,
     U1, V1,
