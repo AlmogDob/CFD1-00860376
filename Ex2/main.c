@@ -1057,30 +1057,30 @@ void apply_BC(double *Q, double *J_vals_mat, double *dxi_dx_mat,
     e_iTE_jTE, rho_iTE_jTE, u_iTE_jTE, v_iTE_jTE, p_iTE_jTE;
 /* wall BC */
     for (i = i_TEL; i <= i_TEU; i++) {
-        // calculate_u_and_v(&u_j1, &v_j1, Q, i, 1);        
-        // contravariant_velocities(&U1, &V1, dxi_dx_mat, dxi_dy_mat, deta_dx_mat,
-        //                          deta_dy_mat, Q, i, 1);
+        calculate_u_and_v(&u_j1, &v_j1, Q, i, 1);        
+        contravariant_velocities(&U1, &V1, dxi_dx_mat, dxi_dy_mat, deta_dx_mat,
+                                 deta_dy_mat, Q, i, 1);
 
-        // /* u_i,0 and v_i,0 */
-        // dxi_dx_j0 = dxi_dx_mat[offset2d(i, 0, ni)];
-        // dxi_dx_j1 = dxi_dx_mat[offset2d(i, 1, ni)]; 
-        // dxi_dy_j0 = dxi_dy_mat[offset2d(i, 0, ni)];
-        // dxi_dy_j1 = dxi_dy_mat[offset2d(i, 1, ni)];
-        // deta_dx_j0 = deta_dx_mat[offset2d(i, 0, ni)];
-        // deta_dy_j0 = deta_dy_mat[offset2d(i, 0, ni)];
-        // J_j0 = J_vals_mat[offset2d(i, 0, ni)];
+        /* u_i,0 and v_i,0 */
+        dxi_dx_j0 = dxi_dx_mat[offset2d(i, 0, ni)];
+        dxi_dx_j1 = dxi_dx_mat[offset2d(i, 1, ni)]; 
+        dxi_dy_j0 = dxi_dy_mat[offset2d(i, 0, ni)];
+        dxi_dy_j1 = dxi_dy_mat[offset2d(i, 1, ni)];
+        deta_dx_j0 = deta_dx_mat[offset2d(i, 0, ni)];
+        deta_dy_j0 = deta_dy_mat[offset2d(i, 0, ni)];
+        J_j0 = J_vals_mat[offset2d(i, 0, ni)];
 
-        // // u_j0 = (dxi_dx_j1 * u_j1 + dxi_dy_j1 * v_j1) / (dxi_dx_j0 - dxi_dy_j0 * deta_dx_j0 / deta_dy_j0);
-        // // v_j0 = -(dxi_dx_j1 * u_j1 + dxi_dy_j1 * v_j1) / (deta_dy_j0 / deta_dx_j0 * dxi_dx_j0 - dxi_dy_j0);
-        // /*test*/
-        // u_j0 = U1 * deta_dy_j0 / J_j0;
-        // v_j0 = - U1 * deta_dx_j0 / J_j0;
-        // /*test*/
+        // u_j0 = (dxi_dx_j1 * u_j1 + dxi_dy_j1 * v_j1) / (dxi_dx_j0 - dxi_dy_j0 * deta_dx_j0 / deta_dy_j0);
+        // v_j0 = -(dxi_dx_j1 * u_j1 + dxi_dy_j1 * v_j1) / (deta_dy_j0 / deta_dx_j0 * dxi_dx_j0 - dxi_dy_j0);
+        /*test*/
+        u_j0 = U1 * deta_dy_j0 / J_j0;
+        v_j0 = - U1 * deta_dx_j0 / J_j0;
+        /*test*/
 
-        u_j1 = Q[offset3d(i, 1, 1,ni, nj)]/Q[offset3d(i, 1, 0, ni, nj)];
-        v_j1 = Q[offset3d(i, 1, 2,ni, nj)]/Q[offset3d(i, 1, 0, ni, nj)];
-        u_j0 = ((dxi_dx_mat[offset2d(i, 1, ni)]*u_j1 + dxi_dy_mat[offset2d(i, 1, ni)]*v_j1) * deta_dy_mat[offset2d(i, 0, ni)]) / J_vals_mat[offset2d(i, 0, ni)];
-        v_j0 = (-deta_dx_mat[offset2d(i, 0, ni)]) * (dxi_dx_mat[offset2d(i, 1, ni)]*u_j1 + dxi_dy_mat[offset2d(i, 1, ni)]*v_j1) / J_vals_mat[offset2d(i, 0, ni)];
+        // u_j1 = Q[offset3d(i, 1, 1,ni, nj)]/Q[offset3d(i, 1, 0, ni, nj)];
+        // v_j1 = Q[offset3d(i, 1, 2,ni, nj)]/Q[offset3d(i, 1, 0, ni, nj)];
+        // u_j0 = ((dxi_dx_mat[offset2d(i, 1, ni)]*u_j1 + dxi_dy_mat[offset2d(i, 1, ni)]*v_j1) * deta_dy_mat[offset2d(i, 0, ni)]) / J_vals_mat[offset2d(i, 0, ni)];
+        // v_j0 = (-deta_dx_mat[offset2d(i, 0, ni)]) * (dxi_dx_mat[offset2d(i, 1, ni)]*u_j1 + dxi_dy_mat[offset2d(i, 1, ni)]*v_j1) / J_vals_mat[offset2d(i, 0, ni)];
 
         /* rho_i,0 */
         rho_j1 = Q[offset3d(i, 1, 0, ni, nj)];
