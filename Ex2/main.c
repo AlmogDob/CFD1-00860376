@@ -1070,6 +1070,7 @@ void apply_BC(double *Q, double *J_vals_mat, double *dxi_dx_mat,
         deta_dy_j0 = deta_dy_mat[offset2d(i, 0, ni)];
         J_j0 = J_vals_mat[offset2d(i, 0, ni)];
 
+
         // u_j0 = (dxi_dx_j1 * u_j1 + dxi_dy_j1 * v_j1) / (dxi_dx_j0 - dxi_dy_j0 * deta_dx_j0 / deta_dy_j0);
         // v_j0 = -(dxi_dx_j1 * u_j1 + dxi_dy_j1 * v_j1) / (deta_dy_j0 / deta_dx_j0 * dxi_dx_j0 - dxi_dy_j0);
         /*test*/
@@ -1095,6 +1096,7 @@ void apply_BC(double *Q, double *J_vals_mat, double *dxi_dx_mat,
         e_j0 = p_j0 / (Gamma -1) + 0.5 * rho_j0 * (u_j0 * u_j0 + v_j0 *v_j0);
         p_j0 = calculate_p(e_j0, rho_j0, u_j0, v_j0);
         printf("%d,%g, %g, %g, %g\n", i,p_j1, p_j0, e_j1, e_j0);
+        printf("%g, %g, %g, %g, %g, %g, %g\n", dxi_dx_j0, dxi_dx_j1, dxi_dy_j0, dxi_dy_j1, deta_dx_j0, deta_dy_j0, J_j0);
 
         Q[offset3d(i, 0, 0, ni, nj)] = rho_j0;
         Q[offset3d(i, 0, 1, ni, nj)] = rho_j0 * u_j0;
