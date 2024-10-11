@@ -44,6 +44,7 @@ epse
 #include <math.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <assert.h>
 
 #define MAXDIR 1000
 #define MAXWORD MAXDIR
@@ -371,7 +372,7 @@ int main(int argc, char const *argv[])
                deta_dy_mat, x_vals_mat, y_vals_mat);
     copy_3Dmat_to_3Dmat(first_Q, current_Q);
     
-    for (int iteration = 0; iteration < 2; iteration++) {
+    for (int iteration = 0; iteration < 100; iteration++) {
         current_S_norm = step(A, B, C, D, current_Q, S, W, J_vals_mat,
                               dxi_dx_mat, dxi_dy_mat, deta_dx_mat,
                               deta_dy_mat, s2, drr, drp, rspec, qv, dd);
@@ -597,6 +598,9 @@ j - second direction
 ni - first direction size */
 int offset2d(int i, int j, int ni)
 {
+    assert(i < ni);
+    assert(j < nj);
+
     return j * ni + i;
 }
 
@@ -609,6 +613,10 @@ ni - first direction size
 nj - second direction size */
 int offset3d(int i, int j, int k, int ni, int nj)
 {
+    assert(i < ni);
+    assert(j < nj);
+    assert(k < 4);
+
     return (k * nj + j) * ni + i;
 }
 
@@ -1095,8 +1103,8 @@ void apply_BC(double *Q, double *J_vals_mat, double *dxi_dx_mat,
         /* e_i,0*/
         e_j0 = p_j0 / (Gamma -1) + 0.5 * rho_j0 * (u_j0 * u_j0 + v_j0 *v_j0);
         p_j0 = calculate_p(e_j0, rho_j0, u_j0, v_j0);
-        printf("%d,%g, %g, %g, %g\n", i,p_j1, p_j0, e_j1, e_j0);
-        printf("%g, %g, %g, %g, %g, %g, %g\n", dxi_dx_j0, dxi_dx_j1, dxi_dy_j0, dxi_dy_j1, deta_dx_j0, deta_dy_j0, J_j0);
+        // printf("%d,%g, %g, %g, %g\n", i,p_j1, p_j0, e_j1, e_j0);
+        // printf("%g, %g, %g, %g, %g, %g, %g\n", dxi_dx_j0, dxi_dx_j1, dxi_dy_j0, dxi_dy_j1, deta_dx_j0, deta_dy_j0, J_j0);
 
         Q[offset3d(i, 0, 0, ni, nj)] = rho_j0;
         Q[offset3d(i, 0, 1, ni, nj)] = rho_j0 * u_j0;
