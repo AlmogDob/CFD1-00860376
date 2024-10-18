@@ -370,9 +370,10 @@ int main(int argc, char const *argv[])
 
     initialize(current_Q, J_vals_mat, dxi_dx_mat, dxi_dy_mat, deta_dx_mat,
                deta_dy_mat, x_vals_mat, y_vals_mat);
+
     copy_3Dmat_to_3Dmat(first_Q, current_Q);
     
-    for (int iteration = 0; iteration < 100; iteration++) {
+    for (int iteration = 0; iteration < 1e6; iteration++) {
         current_S_norm = step(A, B, C, D, current_Q, S, W, J_vals_mat,
                               dxi_dx_mat, dxi_dy_mat, deta_dx_mat,
                               deta_dy_mat, s2, drr, drp, rspec, qv, dd);
@@ -389,8 +390,6 @@ int main(int argc, char const *argv[])
             break;
         }
     }
-    dprintD(max_S_norm);
-    // print_layer_of_mat3D(first_Q, 3);
 
         /*test*/
         // for (int j = nj-1; j >=0; j--) {
@@ -417,16 +416,18 @@ int main(int argc, char const *argv[])
         //         V_mat[index] = V;
         //     }
         // }
-        // print_mat2D(U_mat);
 
-        // print_mat2D(J_vals_mat);
+        // print_mat2D(dxi_dx_mat);
+
         /*test*/
 
-    // int layer = 2;
-    // print_layer_of_mat3D(first_Q, layer);
-    // print_layer_of_mat3D(current_Q, layer);
+    // int layer;
+    // for (layer = 0; layer < 4; layer++) {
+    //     printf("____________________________~%d~______________________________\n", layer);
+    //     print_layer_of_mat3D(current_Q, layer);
+    // }
 
-    // output_solution(current_Q, U_mat, V_mat, x_vals_mat, y_vals_mat, dxi_dx_mat, dxi_dy_mat, deta_dx_mat, deta_dy_mat);
+    output_solution(current_Q, U_mat, V_mat, x_vals_mat, y_vals_mat, dxi_dx_mat, dxi_dy_mat, deta_dx_mat, deta_dy_mat);
     
 /*------------------------------------------------------------*/
 
@@ -583,12 +584,32 @@ void output_solution(double *current_Q, double *U_mat, double *V_mat,
     FILE *y_fp = fopen("./results/y_mat.txt", "wt");
     FILE *U_fp = fopen("./results/U_mat.txt", "wt");
     FILE *V_fp = fopen("./results/V_mat.txt", "wt");
+    FILE *Q0_fp = fopen("./results/Q0_mat.txt", "wt");
+    FILE *Q1_fp = fopen("./results/Q1_mat.txt", "wt");
+    FILE *Q2_fp = fopen("./results/Q2_mat.txt", "wt");
+    FILE *Q3_fp = fopen("./results/Q3_mat.txt", "wt");
+
     output_layer_of_mat3D_to_file(rho_u_fp, current_Q, 1);
     output_layer_of_mat3D_to_file(rho_v_fp, current_Q, 2);
     output_mat2D_to_file(x_fp, x_vals_mat);
     output_mat2D_to_file(y_fp, y_vals_mat);
     output_mat2D_to_file(U_fp, U_mat);
     output_mat2D_to_file(V_fp, V_mat);
+    output_layer_of_mat3D_to_file(Q0_fp, current_Q, 0);
+    output_layer_of_mat3D_to_file(Q1_fp, current_Q, 1);
+    output_layer_of_mat3D_to_file(Q2_fp, current_Q, 2);
+    output_layer_of_mat3D_to_file(Q3_fp, current_Q, 3);
+
+    fclose(rho_u_fp);
+    fclose(rho_v_fp);
+    fclose(x_fp);
+    fclose(y_fp);
+    fclose(U_fp);
+    fclose(V_fp);
+    fclose(Q0_fp);
+    fclose(Q1_fp);
+    fclose(Q2_fp);
+    fclose(Q3_fp);
 }
 
 /* converts a 2D index into 1D index
@@ -640,7 +661,8 @@ void print_layer_of_mat3D(double *data, int layer)
 {
     int j_index, i_index;
 
-    for (j_index = nj - 1; j_index >= 0; j_index--) {
+    // for (j_index = nj - 1; j_index >= 0; j_index--) {
+    for (j_index = 0; j_index < nj; j_index++) {
         for (i_index = 0; i_index < ni; i_index++) {
             printf("%g ", data[offset3d(i_index, j_index, layer, ni, nj)]);
         }
@@ -1700,98 +1722,98 @@ double step(double *A, double *B, double *C, double *D, double *current_Q,
     RHS(S, W, current_Q, J_vals_mat, dxi_dx_mat, dxi_dy_mat, deta_dx_mat, deta_dy_mat,
         s2, rspec, qv, dd);
 
-// /* xi inversions */
-//     for (j = 1; j < nj - 1; j++) {
-//         LHSX(A, B, C, current_Q, dxi_dx_mat, dxi_dy_mat, j);
-//         /*test*/
-//         // if (j == 1) {
-//         //     dprintINT(j);
-//         //     printf("##########____C____##########\n");
-//         //     for (int i = 0; i < ni; i++) {
-//         //         dprintINT(i);
-//         //         for (int m = 0; m < 4; m++) {
-//         //             for (int n = 0; n < 4; n++) {
-//         //                 printf("%g ", C[offset3d(i, m, n, ni, 4)]);
-//         //             }
-//         //             printf("\n");
-//         //         }
-//         //         printf("\n");
-//         //     }
-//         //     printf("\n");
-//         // }
-//         /*test*/
-//         if (smoothx(current_Q, dxi_dx_mat, dxi_dy_mat, ni, nj, A, B, C,
-//                     j, J_vals_mat, drr, drp, rspec, qv, dd, epsi, Gamma,
-//                     Mach_inf, delta_t)) {
-//                     /* returns zero on success */
-//                     fprintf(stderr, "%s:%d: [Erorr] problem with smoothx in LHSX\n", __FILE__, __LINE__);
-//                     exit(1);
-//                 }
-//         for (k = 0; k < 4; k++) {
-//             for (i = 0; i < ni; i++) {
-//                 D[offset2d(i, k, max_ni_nj)] = S[offset3d(i, j, k, ni, nj)];
-//             }
-//         }
-//         /*test*/
-//         // if (j == 1) {
-//         //     dprintINT(j);
-//         //     printf("##########____B____##########\n");
-//         //     for (int i = 0; i < ni; i++) {
-//         //         dprintINT(i);
-//         //         for (int m = 0; m < 4; m++) {
-//         //             for (int n = 0; n < 4; n++) {
-//         //                 printf("%g ", B[offset3d(i, m, n, ni, 4)]);
-//         //             }
-//         //             printf("\n");
-//         //         }
-//         //         printf("\n");
-//         //     }
-//         //     printf("\n");
-//         // }
-//         /*test*/
+/* xi inversions */
+    for (j = 1; j < nj - 1; j++) {
+        LHSX(A, B, C, current_Q, dxi_dx_mat, dxi_dy_mat, j);
+        /*test*/
+        // if (j == 1) {
+        //     dprintINT(j);
+        //     printf("##########____C____##########\n");
+        //     for (int i = 0; i < ni; i++) {
+        //         dprintINT(i);
+        //         for (int m = 0; m < 4; m++) {
+        //             for (int n = 0; n < 4; n++) {
+        //                 printf("%g ", C[offset3d(i, m, n, ni, 4)]);
+        //             }
+        //             printf("\n");
+        //         }
+        //         printf("\n");
+        //     }
+        //     printf("\n");
+        // }
+        /*test*/
+        if (smoothx(current_Q, dxi_dx_mat, dxi_dy_mat, ni, nj, A, B, C,
+                    j, J_vals_mat, drr, drp, rspec, qv, dd, epsi, Gamma,
+                    Mach_inf, delta_t)) {
+                    /* returns zero on success */
+                    fprintf(stderr, "%s:%d: [Erorr] problem with smoothx in LHSX\n", __FILE__, __LINE__);
+                    exit(1);
+                }
+        for (k = 0; k < 4; k++) {
+            for (i = 0; i < ni; i++) {
+                D[offset2d(i, k, max_ni_nj)] = S[offset3d(i, j, k, ni, nj)];
+            }
+        }
+        /*test*/
+        // if (j == 1) {
+        //     dprintINT(j);
+        //     printf("##########____B____##########\n");
+        //     for (int i = 0; i < ni; i++) {
+        //         dprintINT(i);
+        //         for (int m = 0; m < 4; m++) {
+        //             for (int n = 0; n < 4; n++) {
+        //                 printf("%g ", B[offset3d(i, m, n, ni, 4)]);
+        //             }
+        //             printf("\n");
+        //         }
+        //         printf("\n");
+        //     }
+        //     printf("\n");
+        // }
+        /*test*/
 
-//         btri4s(A, B, C, D, ni, 1, ni - 2);
+        btri4s(A, B, C, D, ni, 1, ni - 2);
 
-//         /*test*/
-//         // if (j == 1) {
-//         //     dprintINT(j);
-//         //     for (i = 0; i < ni; i++) {
-//         //         for (k = 0; k < 4; k++) {
-//         //             printf("%g ", D[offset2d(i, k, max_ni_nj)]);
-//         //         }
-//         //         printf("\n");
-//         //     }
-//         // }
-//         /*test*/
+        /*test*/
+        // if (j == 1) {
+        //     dprintINT(j);
+        //     for (i = 0; i < ni; i++) {
+        //         for (k = 0; k < 4; k++) {
+        //             printf("%g ", D[offset2d(i, k, max_ni_nj)]);
+        //         }
+        //         printf("\n");
+        //     }
+        // }
+        /*test*/
 
-//         for (k = 0; k < 4; k++) {
-//             for (i = 0; i < ni; i++) {
-//                 S[offset3d(i, j, k, ni, nj)] = D[offset2d(i, k, max_ni_nj)];
-//             }
-//         }
-//     }
+        for (k = 0; k < 4; k++) {
+            for (i = 0; i < ni; i++) {
+                S[offset3d(i, j, k, ni, nj)] = D[offset2d(i, k, max_ni_nj)];
+            }
+        }
+    }
 
 /* eta inversions */
-    // for (i = 1; i < ni - 1; i++) {
-    //     LHSY(A, B, C, current_Q, deta_dx_mat, deta_dy_mat, i);
-    //     if (smoothy(current_Q, deta_dx_mat, deta_dy_mat, ni,nj, A, B, C, i, J_vals_mat,
-    //                 drr, drp, rspec, qv, dd, epsi, Gamma, Mach_inf, delta_t)) {
-    //                 /* returns zero on success */
-    //                 fprintf(stderr, "%s:%d: [Erorr] problem with smoothy in LHSY\n", __FILE__, __LINE__);
-    //                 exit(1);
-    //             }
-    //     for (k = 0; k < 4; k++) {
-    //         for (j = 0; j < nj; j++) {
-    //             D[offset2d(j, k, max_ni_nj)] = S[offset3d(i, j, k, ni, nj)];
-    //         }
-    //     }
-    //     btri4s(A, B, C, D, nj, 1, nj - 2);
-    //     for (k = 0; k < 4; k++) {
-    //         for (j = 0; j < nj; j++) {
-    //             S[offset3d(i, j, k, ni, nj)] = D[offset2d(j, k, max_ni_nj)];
-    //         }
-    //     }
-    // }
+    for (i = 1; i < ni - 1; i++) {
+        LHSY(A, B, C, current_Q, deta_dx_mat, deta_dy_mat, i);
+        if (smoothy(current_Q, deta_dx_mat, deta_dy_mat, ni,nj, A, B, C, i, J_vals_mat,
+                    drr, drp, rspec, qv, dd, epsi, Gamma, Mach_inf, delta_t)) {
+                    /* returns zero on success */
+                    fprintf(stderr, "%s:%d: [Erorr] problem with smoothy in LHSY\n", __FILE__, __LINE__);
+                    exit(1);
+                }
+        for (k = 0; k < 4; k++) {
+            for (j = 0; j < nj; j++) {
+                D[offset2d(j, k, max_ni_nj)] = S[offset3d(i, j, k, ni, nj)];
+            }
+        }
+        btri4s(A, B, C, D, nj, 1, nj - 2);
+        for (k = 0; k < 4; k++) {
+            for (j = 0; j < nj; j++) {
+                S[offset3d(i, j, k, ni, nj)] = D[offset2d(j, k, max_ni_nj)];
+            }
+        }
+    }
 
     return calculate_S_norm(S);
 }
@@ -1801,6 +1823,11 @@ void matrices_coeffic_and_Jacobian(double *J_vals_mat, double *dxi_dx_mat,
                                    double *deta_dy_mat, double *x_vals_mat,
                                    double *y_vals_mat)
 {
+    double *dx_dxi_mat = malloc(sizeof(double) * ni * nj);
+    double *dy_dxi_mat = malloc(sizeof(double) * ni * nj);
+    double *dx_deta_mat = malloc(sizeof(double) * ni * nj);
+    double *dy_deta_mat = malloc(sizeof(double) * ni * nj);
+
     for (int i = 0; i < ni; i++) {
         for (int j = 0; j < nj; j++) {
             int index = offset2d(i, j, ni);
@@ -1808,6 +1835,11 @@ void matrices_coeffic_and_Jacobian(double *J_vals_mat, double *dxi_dx_mat,
             double dx_deta = first_deriv(x_vals_mat, 'j', i, j);
             double dy_dxi = first_deriv(y_vals_mat, 'i', i, j);
             double dy_deta = first_deriv(y_vals_mat, 'j', i, j);
+
+            dx_dxi_mat[index] = dx_dxi;
+            dy_dxi_mat[index] = dy_dxi;
+            dx_deta_mat[index] = dx_deta;
+            dy_deta_mat[index] = dy_deta;
 
             double J = 1.0 / (dx_dxi * dy_deta - dy_dxi * dx_deta);
             J_vals_mat[index] = J;
@@ -1818,6 +1850,47 @@ void matrices_coeffic_and_Jacobian(double *J_vals_mat, double *dxi_dx_mat,
             deta_dy_mat[index] =   J * dx_dxi;
         }
     }
+
+
+    FILE *J_vals_fp = fopen("./checks/J_vals_mat.txt", "wt");
+
+    FILE *dxi_dx_fp  = fopen("./checks/dxi_dx.txt", "wt");
+    FILE *dxi_dy_fp  = fopen("./checks/dxi_dy.txt", "wt");
+    FILE *deta_dx_fp = fopen("./checks/deta_dx.txt", "wt");
+    FILE *deta_dy_fp = fopen("./checks/deta_dy.txt", "wt");
+
+    FILE *dx_dxi_fp  = fopen("./checks/dx_dxi.txt", "wt");
+    FILE *dy_dxi_fp  = fopen("./checks/dy_dxi.txt", "wt");
+    FILE *dx_deta_fp = fopen("./checks/dx_deta.txt", "wt");
+    FILE *dy_deta_fp = fopen("./checks/dy_deta.txt", "wt");
+
+    output_mat2D_to_file(J_vals_fp, J_vals_mat);
+
+    output_mat2D_to_file(dxi_dx_fp, dxi_dx_mat);
+    output_mat2D_to_file(deta_dx_fp, deta_dx_mat);
+    output_mat2D_to_file(dxi_dy_fp, dxi_dy_mat);
+    output_mat2D_to_file(deta_dy_fp, deta_dy_mat);
+
+    output_mat2D_to_file(dx_dxi_fp, dx_dxi_mat);
+    output_mat2D_to_file(dx_deta_fp, dx_deta_mat);
+    output_mat2D_to_file(dy_dxi_fp, dy_dxi_mat);
+    output_mat2D_to_file(dy_deta_fp, dy_deta_mat);
+
+    free(dx_dxi_mat);
+    free(dy_dxi_mat);
+    free(dx_deta_mat);
+    free(dy_deta_mat);
+
+    fclose(J_vals_fp);
+    fclose(dx_dxi_fp);
+    fclose(dx_deta_fp);
+    fclose(dy_dxi_fp);
+    fclose(dy_deta_fp);
+    fclose(dxi_dx_fp);
+    fclose(deta_dx_fp);
+    fclose(dxi_dy_fp);
+    fclose(deta_dy_fp);
+
 }
 
 void initialize(double *Q, double *J_vals_mat, double *dxi_dx_mat,

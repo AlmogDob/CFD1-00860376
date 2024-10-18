@@ -322,7 +322,7 @@ int main()
         copy_mat(y_vals_mat_current, y_vals_mat_next);
 
         /* checking convergenc */
-        if (log10(fabs(first_result.x/result.x)) > 5 && log10(fabs(first_result.y/result.y))) {
+        if (log10(fabs(first_result.x/result.x)) > 4.5 && log10(fabs(first_result.y/result.y))) {
             break;
         }
     }
