@@ -146,7 +146,7 @@ int main(int argc, char const *argv[])
     /*------------------------------------------------------------*/
 
     /* Geting the input and output directories */
-    if (--argc != 1) {
+    if (--argc != 2) {
         fprintf(stderr, "ERROR: not right usage\nUsage: main 'input dir' 'output dir'\n");
         return -1;
     }
