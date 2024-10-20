@@ -4,7 +4,7 @@ build_main: main.c
 	gcc -g -Wall -Wextra ./main.c -lm -o main
 
 run_main:
-	./main $(IN_DIR) $(MESH_DIR)
+	./main $(IN_FILL) $(MESH_FILL)
 
 clean_main:
 	rm main
