@@ -373,7 +373,8 @@ int main(int argc, char const *argv[])
 
     copy_3Dmat_to_3Dmat(first_Q, current_Q);
     
-    for (int iteration = 0; iteration < 1e6; iteration++) {
+    for (int iteration = 0; iteration < 2e5; iteration++) {
+        apply_BC(current_Q, J_vals_mat, dxi_dx_mat, dxi_dy_mat, deta_dx_mat, deta_dy_mat);
         current_S_norm = step(A, B, C, D, current_Q, S, W, J_vals_mat,
                               dxi_dx_mat, dxi_dy_mat, deta_dx_mat,
                               deta_dy_mat, s2, drr, drp, rspec, qv, dd);
@@ -382,11 +383,38 @@ int main(int argc, char const *argv[])
         }
         advance_Q(next_Q, current_Q, S, J_vals_mat);
         copy_3Dmat_to_3Dmat(current_Q, next_Q);
-        apply_BC(current_Q, J_vals_mat, dxi_dx_mat, dxi_dy_mat, deta_dx_mat, deta_dy_mat);
+        
+        // if (iteration == 5e3) {
+        //     delta_t *= 1.2;
+        // }
+        // if (iteration == 1e4) {
+        //     delta_t *= 0.8;
+        // }
+        // if (iteration == 1.5e4) {
+        //     delta_t *= 0.8;
+        // }
+        // if (iteration == 3.5e4) {
+        //     delta_t *= 0.65;
+        // }
+        // if (iteration == 4e4) {
+        //     delta_t *= 1.3;
+        // }
+        // if (iteration == 5.5e4) {
+        //     delta_t *= 0.8;
+        // }
+        // if (iteration == 7e4) {
+        //     delta_t *= 1.3;
+        // }
+        // if (iteration == 1e5) {
+        //     delta_t *= 1.2;
+        // }
+        // if (iteration == 1.2e5) {
+        //     delta_t *= 1.2;
+        // }
         
         printf("%d: %f\n", iteration, current_S_norm);
 
-        if (fabs(current_S_norm) / max_S_norm < 1e-5 || current_S_norm == 0 || isnan(current_S_norm)) {
+        if (fabs(current_S_norm) / max_S_norm < 1e-6 || current_S_norm == 0 || isnan(current_S_norm)) {
             break;
         }
     }
@@ -417,7 +445,7 @@ int main(int argc, char const *argv[])
         //     }
         // }
 
-        // print_mat2D(dxi_dx_mat);
+        // print_mat2D(deta_dy_mat);
 
         /*test*/
 
@@ -645,11 +673,9 @@ void print_mat2D(double *data)
 {
     int j_index, i_index;
 
-    for (j_index = nj - 1; j_index >= 0; j_index--) {
+    // for (j_index = nj - 1; j_index >= 0; j_index--) {
+    for (j_index = 0; j_index < nj; j_index++) {
         for (i_index = 0; i_index < ni; i_index++) {
-                if (i_index == i_LE) {
-                    printf("  ");
-                }
             printf("%g ", data[offset2d(i_index, j_index, ni)]);
         }
         printf("\n");
@@ -1078,6 +1104,63 @@ int smooth(double *q, double *s, double *jac, double *xx, double *xy,
 void apply_BC(double *Q, double *J_vals_mat, double *dxi_dx_mat,
               double *dxi_dy_mat, double *deta_dx_mat, double *deta_dy_mat)
 {
+    // for (int i = i_TEL; i<=i_TEU; i++){
+    //         double u_1 = Q[offset3d(i, 1, 1,ni, nj)]/Q[offset3d(i, 1, 0, ni, nj)];
+    //         double v_1 = Q[offset3d(i, 1, 2,ni, nj)]/Q[offset3d(i, 1, 0, ni, nj)];
+    //         double u = ((dxi_dx_mat[offset2d(i, 1, ni)]*u_1 + dxi_dy_mat[offset2d(i, 1, ni)]*v_1) * deta_dy_mat[offset2d(i, 0, ni)]) / J_vals_mat[offset2d(i, 0, ni)];
+    //         double v = (-deta_dx_mat[offset2d(i, 0, ni)]) * (dxi_dx_mat[offset2d(i, 1, ni)]*u_1 + dxi_dy_mat[offset2d(i, 1, ni)]*v_1) / J_vals_mat[offset2d(i, 0, ni)];
+    //         double rho = Q[offset3d(i,1,0,ni,nj)];
+    //         double e1 = Q[offset3d(i,1,3,ni,nj)];
+    //         double P = (Gamma-1)*(e1-0.5*rho*(pow(u_1,2)+(pow(v_1,2))));
+    //         double e = P/(Gamma-1)+0.5*rho*(pow(u,2)+(pow(v,2)));
+    //         Q[offset3d(i,0,0,ni,nj)] = rho;
+    //         Q[offset3d(i,0,1,ni,nj)] = rho*u;
+    //         Q[offset3d(i,0,2,ni,nj)] = rho*v;
+    //         Q[offset3d(i,0,3,ni,nj)] = e;
+    // }
+    // double u_1_i_TEL = Q[offset3d(i_TEL,1,1,ni,nj)]/Q[offset3d(i_TEL,1,0,ni,nj)];
+    // double v_1_i_TEL = Q[offset3d(i_TEL,1,2,ni,nj)]/Q[offset3d(i_TEL,1,0,ni,nj)];
+    // double u_i_TEL = ((dxi_dx_mat[offset2d(i_TEL, 1, ni)]*u_1_i_TEL )+dxi_dy_mat[offset2d(i_TEL, 1, ni)]*v_1_i_TEL)/(dxi_dx_mat[offset2d(i_TEL, 0, ni)]-dxi_dy_mat[offset2d(i_TEL, 0, ni)]*(deta_dx_mat[offset2d(i_TEL, 0, ni)]/deta_dy_mat[offset2d(i_TEL, 0, ni)]));
+    // double v_i_TEL =(-deta_dx_mat[offset2d(i_TEL,0,ni)])/(deta_dy_mat[offset2d(i_TEL,0,ni)])*u_i_TEL;
+    // double rho_i_TEL = Q[offset3d(i_TEL,1,0,ni,nj)];
+    // double e1_i_TEL = Q[offset3d(i_TEL,1,3,ni,nj)];
+    // double P_i_TEL = (Gamma-1)*(e1_i_TEL-0.5*rho_i_TEL*(pow(u_1_i_TEL,2)+(pow(v_1_i_TEL,2))));
+
+    // double u_1_i_TEU = Q[offset3d(i_TEU,1,1,ni,nj)]/Q[offset3d(i_TEU,1,0,ni,nj)];
+    // double v_1_i_TEU = Q[offset3d(i_TEU,1,2,ni,nj)]/Q[offset3d(i_TEU,1,0,ni,nj)];
+    // double u_i_TEU = ((dxi_dx_mat[offset2d(i_TEU, 1, ni)]*u_1_i_TEU )+dxi_dy_mat[offset2d(i_TEU, 1, ni)]*v_1_i_TEU)/(dxi_dx_mat[offset2d(i_TEU, 0, ni)]-dxi_dy_mat[offset2d(i_TEU, 0, ni)]*(deta_dx_mat[offset2d(i_TEU, 0, ni)]/deta_dy_mat[offset2d(i_TEU, 0, ni)]));
+    // double v_i_TEU =(-deta_dx_mat[offset2d(i_TEU,0,ni)])/(deta_dy_mat[offset2d(i_TEU,0,ni)])*u_i_TEU;
+    // double rho_i_TEU = Q[offset3d(i_TEU,1,0,ni,nj)];
+    // double e1_i_TEU = Q[offset3d(i_TEU,1,3,ni,nj)];
+    // double P_i_TEU = (Gamma-1)*(e1_i_TEU-0.5*rho_i_TEU*(pow(u_1_i_TEU,2)+(pow(v_1_i_TEU,2))));
+    // //averaging
+    // double P_te = 0.5*(P_i_TEL+P_i_TEU);
+    // double u_te = 0.5*(u_i_TEL+u_i_TEU);
+    // double v_te = 0.5*(v_i_TEL+v_i_TEU);
+    // double rho_te = 0.5*(rho_i_TEL+rho_i_TEU);
+    // double e_te = P_te/(Gamma-1)+0.5*rho_te*(pow(u_te,2)+(pow(v_te,2)));
+    // for (int i=i_TEL;i <= i_TEU;i+=i_TEU-i_TEL)
+    // {
+    //     Q[offset3d(i,0,0,ni,nj)] = rho_te;
+    //     Q[offset3d(i,0,1,ni,nj)] = rho_te*u_te;
+    //     Q[offset3d(i,0,2,ni,nj)] = rho_te*v_te;
+    //     Q[offset3d(i,0,3,ni,nj)] = e_te;
+    // }
+    // for(int i = 1; i < i_TEL; i++){
+    //     for (int k = 0; k <= 3; k++){
+    //         Q[offset3d(i, 0, k, ni, nj)] = 0.5*(Q[offset3d(i,1,k,ni,nj)] + Q[offset3d(ni-1-i, 1,k,ni, nj)]);
+    //         Q[offset3d(ni - 1 - i, 0, k, ni, nj)] = Q[offset3d(i, 0 , k, ni, nj)];
+    //     }
+    // }
+    // for(int j = 1; j < nj-1; j++){
+    //     for (int k = 0; k <= 3; k++){
+    //         Q[offset3d(0, j, k, ni, nj)] =  Q[offset3d(1, j, k, ni, nj)];
+    //         Q[offset3d(ni - 1, j, k, ni, nj)] = Q[offset3d(ni-2, j , k, ni, nj)];
+    //     }
+    // }
+
+/*-------------------------------------------------------------------------------------*/
+    
     int i, k;
     double J_j0, u_j1, v_j1, p_j1, e_j1, rho_j0, rho_j1, p_j0, e_j0, u_j0,
     v_j0, dxi_dx_j0, dxi_dx_j1, dxi_dy_j0, dxi_dy_j1, deta_dx_j0,
@@ -1087,6 +1170,7 @@ void apply_BC(double *Q, double *J_vals_mat, double *dxi_dx_mat,
     e_iTE_jTE, rho_iTE_jTE, u_iTE_jTE, v_iTE_jTE, p_iTE_jTE;
 /* wall BC */
     for (i = i_TEL; i <= i_TEU; i++) {
+
         calculate_u_and_v(&u_j1, &v_j1, Q, i, 1);        
         contravariant_velocities(&U1, &V1, dxi_dx_mat, dxi_dy_mat, deta_dx_mat,
                                  deta_dy_mat, Q, i, 1);
@@ -1445,79 +1529,169 @@ int smoothy(double *q, double *yx, double *yy, int id, int jd, double *a,
     return 0;
 }
 
+void Calc_Jacob_LHS(int i, int ni, double k_x, double k_y, double Q_0, double Q_1, double Q_2, double Q_3, double *B){
+
+    double u = Q_1/Q_0;
+    double v = Q_2/Q_0;
+    double psi_square = 0.5*(Gamma -1)*(pow(u,2) + pow(v,2));
+    double theta = k_x*u + k_y*v;
+    double Gamma_1 = Gamma - 1;
+    double Gamma_2 = Gamma - 2;
+    double beta = Gamma*Q_3/Q_0 - psi_square;
+
+    B[offset3d(i, 0, 0, ni, 4)] = 0;
+    B[offset3d(i, 0, 1, ni, 4)] = k_x;
+    B[offset3d(i, 0, 2, ni, 4)] = k_y;
+    B[offset3d(i, 0, 3, ni, 4)] = 0;
+
+    B[offset3d(i, 1, 0, ni, 4)] = k_x*psi_square - u*theta;
+    B[offset3d(i, 1, 1, ni, 4)] = theta -k_x*Gamma_2*u;
+    B[offset3d(i, 1, 2, ni, 4)] = k_y*u - Gamma_1*k_x*v;
+    B[offset3d(i, 1, 3, ni, 4)] = k_x*Gamma_1;
+
+    B[offset3d(i, 2, 0, ni, 4)] = k_y*psi_square - v*theta;
+    B[offset3d(i, 2, 1, ni, 4)] = k_x*v - k_y*Gamma_1*u;
+    B[offset3d(i, 2, 2, ni, 4)] = theta - k_y*Gamma_2*v;
+    B[offset3d(i, 2, 3, ni, 4)] = k_y*Gamma_1;
+
+    B[offset3d(i, 3, 0, ni, 4)] = theta*(2*psi_square - Gamma*Q_3/Q_0);
+    B[offset3d(i, 3, 1, ni, 4)] = k_x*beta - Gamma_1*u*theta;
+    B[offset3d(i, 3, 2, ni, 4)] = k_y*beta - Gamma_1*v*theta;
+    B[offset3d(i, 3, 3, ni, 4)] = Gamma*theta;
+
+
+}
+
 void LHSX(double *A, double *B, double *C, double *Q,
           double *dxi_dx_mat, double *dxi_dy_mat, int j)
 {
-    int i, n, m; 
-
-    // for (i = 0; i < max_ni_nj; i++) {
-    //     for (n = 0; n < 4; n++) {
-    //         for (m = 0; m < 4; m++) {
-    //                 A[offset3d(i, m, n, max_ni_nj, 4)] = 0;
-    //                 B[offset3d(i, m, n, max_ni_nj, 4)] = 0;
-    //                 C[offset3d(i, m, n, max_ni_nj, 4)] = 0;
-    //         }
-    //     }
-    // }
-
-    for (i = 0; i < ni; i++) {
-        calculate_A_hat_j_const(B, Q, dxi_dx_mat, dxi_dy_mat, i, j);
+    for (int i = 0; i < ni; i++){
+        double Q_0 = Q[offset3d(i,j,0,ni,nj)];
+        double Q_1 = Q[offset3d(i,j,1,ni,nj)];
+        double Q_2 = Q[offset3d(i,j,2,ni,nj)];
+        double Q_3 = Q[offset3d(i,j,3,ni,nj)];
+        Calc_Jacob_LHS(i, ni, dxi_dx_mat[offset2d(i, j, ni)], dxi_dy_mat[offset2d(i, j, ni)], Q_0, Q_1, Q_2, Q_3,B);
     }
-    for (i = 1; i < ni - 1; i++) {
-        for (n = 0; n < 4; n++) {
-            for (m = 0; m < 4; m++) {
-                    A[offset3d(i, m, n, ni, 4)] = - delta_t * 0.5 * B[offset3d(i-1, m, n, ni, 4)];
-                    C[offset3d(i, m, n, ni, 4)] =   delta_t * 0.5 * B[offset3d(i+1, m, n, ni, 4)];
+    for (int n = 0; n < 4; n++){
+        for (int m = 0; m < 4; m++){
+            for (int i = 1; i < ni - 1; i++){
+                A[offset3d(i, m, n, ni, 4)] = -0.5*B[offset3d(i -1, m , n, ni, 4)]*delta_t;
+                C[offset3d(i, m, n, ni, 4)] = 0.5*B[offset3d(i + 1, m , n, ni, 4)]*delta_t;
             }
         }
     }
-    /*test*/
-    // printf("##########____C____##########\n");
-    // for (i = 0; i < ni; i++) {
-    //     for (m = 0; m < 4; m++) {
-    //         for (n = 0; n < 4; n++) {
-    //             printf("%g ", C[offset3d(i, m, n, ni, 4)]);
-    //         }
-    //         printf("\n");
-    //     }
-    //     printf("\n");
-    // }
-    // printf("\n");
-    /*test*/
-    for (i = 0; i < ni; i++) {
-        for (n = 0; n < 4; n++) {
-            for (m = 0; m < 4; m++) {
-                if (n == m) {
-                    B[offset3d(i, m, n, ni, 4)] = 1;
-                } else {
+    for (int i = 0; i < ni-1; i++){
+        for (int m = 0; m < 4; m++){
+            for (int n = 0; n < 4; n++){
+                if (m!=n){
                     B[offset3d(i, m, n, ni, 4)] = 0;
+                }
+                if (m == n){
+                    B[offset3d(i, m, n, ni, 4)] = 1;
                 }
             }
         }
     }
 
 
+    // int i, n, m; 
 
-    // /*test*/
-    // printf("##########____C____##########\n");
+    // // for (i = 0; i < max_ni_nj; i++) {
+    // //     for (n = 0; n < 4; n++) {
+    // //         for (m = 0; m < 4; m++) {
+    // //                 A[offset3d(i, m, n, max_ni_nj, 4)] = 0;
+    // //                 B[offset3d(i, m, n, max_ni_nj, 4)] = 0;
+    // //                 C[offset3d(i, m, n, max_ni_nj, 4)] = 0;
+    // //         }
+    // //     }
+    // // }
+
     // for (i = 0; i < ni; i++) {
-    //     for (m = 0; m < 4; m++) {
-    //         for (n = 0; n < 4; n++) {
-    //             printf("%g ", C[offset3d(i, m, n, ni, 4)]);
-    //         }
-    //         printf("\n");
-    //     }
-    //     printf("\n");
+    //     calculate_A_hat_j_const(B, Q, dxi_dx_mat, dxi_dy_mat, i, j);
     // }
-    // printf("\n");
+    // for (i = 1; i < ni - 1; i++) {
+    //     for (n = 0; n < 4; n++) {
+    //         for (m = 0; m < 4; m++) {
+    //                 A[offset3d(i, m, n, ni, 4)] = - delta_t * 0.5 * B[offset3d(i-1, m, n, ni, 4)];
+    //                 C[offset3d(i, m, n, ni, 4)] =   delta_t * 0.5 * B[offset3d(i+1, m, n, ni, 4)];
+    //         }
+    //     }
+    // }
     // /*test*/
+    // // printf("##########____C____##########\n");
+    // // for (i = 0; i < ni; i++) {
+    // //     for (m = 0; m < 4; m++) {
+    // //         for (n = 0; n < 4; n++) {
+    // //             printf("%g ", C[offset3d(i, m, n, ni, 4)]);
+    // //         }
+    // //         printf("\n");
+    // //     }
+    // //     printf("\n");
+    // // }
+    // // printf("\n");
+    // /*test*/
+    // for (i = 0; i < ni; i++) {
+    //     for (n = 0; n < 4; n++) {
+    //         for (m = 0; m < 4; m++) {
+    //             if (n == m) {
+    //                 B[offset3d(i, m, n, ni, 4)] = 1;
+    //             } else {
+    //                 B[offset3d(i, m, n, ni, 4)] = 0;
+    //             }
+    //         }
+    //     }
+    // }
+
+
+
+    // // /*test*/
+    // // printf("##########____C____##########\n");
+    // // for (i = 0; i < ni; i++) {
+    // //     for (m = 0; m < 4; m++) {
+    // //         for (n = 0; n < 4; n++) {
+    // //             printf("%g ", C[offset3d(i, m, n, ni, 4)]);
+    // //         }
+    // //         printf("\n");
+    // //     }
+    // //     printf("\n");
+    // // }
+    // // printf("\n");
+    // // /*test*/
     
 }
 
 void LHSY(double *A, double *B, double *C, double *Q,
           double *deta_dx_mat, double *deta_dy_mat, int i)
 {
-    int j, n, m; 
+    for (int j = 0; j < nj; j++){
+        double Q_0 = Q[offset3d(i,j,0,ni,nj)];
+        double Q_1 = Q[offset3d(i,j,1,ni,nj)];
+        double Q_2 = Q[offset3d(i,j,2,ni,nj)];
+        double Q_3 = Q[offset3d(i,j,3,ni,nj)];
+        Calc_Jacob_LHS(j, nj, deta_dx_mat[offset2d(i, j, ni)], deta_dy_mat[offset2d(i, j, ni)], Q_0, Q_1, Q_2, Q_3,B);
+    }
+    for (int n = 0; n < 4; n++){
+        for (int m = 0; m < 4; m++){
+            for (int j = 1; j < nj - 1; j++){
+                A[offset3d(j, m, n, nj, 4)] = -0.5*B[offset3d(j -1, m , n, nj, 4)]*delta_t;
+                C[offset3d(j, m, n, nj, 4)] = 0.5*B[offset3d(j + 1, m , n, nj, 4)]*delta_t;
+            }
+        }
+    }
+    for (int j = 0; j < nj-1; j++){
+        for (int m = 0; m < 4; m++){
+            for (int n = 0; n < 4; n++){
+                if (m!=n){
+                    B[offset3d(j, m, n, nj, 4)] = 0;
+                }
+                if (m == n){
+                    B[offset3d(j, m, n, nj, 4)] = 1;
+                }
+            }
+        }
+    }
+
+    // int j, n, m; 
 
     // for (j = 0; j < max_ni_nj; j++) {
     //     for (n = 0; n < 4; n++) {
@@ -1529,28 +1703,28 @@ void LHSY(double *A, double *B, double *C, double *Q,
     //     }
     // }
 
-    for (j = 0; j < nj; j++) {
-        calculate_B_hat_i_const(B, Q, deta_dx_mat, deta_dy_mat, i, j);
-    }
-    for (j = 1; j < nj - 1; j++) {
-        for (n = 0; n < 4; n++) {
-            for (m = 0; m < 4; m++) {
-                    A[offset3d(j, m, n, nj, 4)] = - delta_t * 0.5 * B[offset3d(j-1, m, n, nj, 4)];
-                    C[offset3d(j, m, n, nj, 4)] =   delta_t * 0.5 * B[offset3d(j+1, m, n, nj, 4)];
-            }
-        }
-    }
-    for (j = 0; j < nj; j++) {
-        for (n = 0; n < 4; n++) {
-            for (m = 0; m < 4; m++) {
-                if (n == m) {
-                    B[offset3d(j, m, n, nj, 4)] = 1;
-                } else {
-                    B[offset3d(j, m, n, nj, 4)] = 0;
-                }
-            }
-        }
-    }
+    // for (j = 0; j < nj; j++) {
+    //     calculate_B_hat_i_const(B, Q, deta_dx_mat, deta_dy_mat, i, j);
+    // }
+    // for (j = 1; j < nj - 1; j++) {
+    //     for (n = 0; n < 4; n++) {
+    //         for (m = 0; m < 4; m++) {
+    //                 A[offset3d(j, m, n, nj, 4)] = - delta_t * 0.5 * B[offset3d(j-1, m, n, nj, 4)];
+    //                 C[offset3d(j, m, n, nj, 4)] =   delta_t * 0.5 * B[offset3d(j+1, m, n, nj, 4)];
+    //         }
+    //     }
+    // }
+    // for (j = 0; j < nj; j++) {
+    //     for (n = 0; n < 4; n++) {
+    //         for (m = 0; m < 4; m++) {
+    //             if (n == m) {
+    //                 B[offset3d(j, m, n, nj, 4)] = 1;
+    //             } else {
+    //                 B[offset3d(j, m, n, nj, 4)] = 0;
+    //             }
+    //         }
+    //     }
+    // }
 }
 
 int btri4s(double *a, double *b, double *c, double *f, int kd, int ks, int ke)
@@ -1725,23 +1899,6 @@ double step(double *A, double *B, double *C, double *D, double *current_Q,
 /* xi inversions */
     for (j = 1; j < nj - 1; j++) {
         LHSX(A, B, C, current_Q, dxi_dx_mat, dxi_dy_mat, j);
-        /*test*/
-        // if (j == 1) {
-        //     dprintINT(j);
-        //     printf("##########____C____##########\n");
-        //     for (int i = 0; i < ni; i++) {
-        //         dprintINT(i);
-        //         for (int m = 0; m < 4; m++) {
-        //             for (int n = 0; n < 4; n++) {
-        //                 printf("%g ", C[offset3d(i, m, n, ni, 4)]);
-        //             }
-        //             printf("\n");
-        //         }
-        //         printf("\n");
-        //     }
-        //     printf("\n");
-        // }
-        /*test*/
         if (smoothx(current_Q, dxi_dx_mat, dxi_dy_mat, ni, nj, A, B, C,
                     j, J_vals_mat, drr, drp, rspec, qv, dd, epsi, Gamma,
                     Mach_inf, delta_t)) {
@@ -1751,44 +1908,15 @@ double step(double *A, double *B, double *C, double *D, double *current_Q,
                 }
         for (k = 0; k < 4; k++) {
             for (i = 0; i < ni; i++) {
-                D[offset2d(i, k, max_ni_nj)] = S[offset3d(i, j, k, ni, nj)];
+                D[offset2d(i, k, ni)] = S[offset3d(i, j, k, ni, nj)];
             }
         }
-        /*test*/
-        // if (j == 1) {
-        //     dprintINT(j);
-        //     printf("##########____B____##########\n");
-        //     for (int i = 0; i < ni; i++) {
-        //         dprintINT(i);
-        //         for (int m = 0; m < 4; m++) {
-        //             for (int n = 0; n < 4; n++) {
-        //                 printf("%g ", B[offset3d(i, m, n, ni, 4)]);
-        //             }
-        //             printf("\n");
-        //         }
-        //         printf("\n");
-        //     }
-        //     printf("\n");
-        // }
-        /*test*/
 
         btri4s(A, B, C, D, ni, 1, ni - 2);
 
-        /*test*/
-        // if (j == 1) {
-        //     dprintINT(j);
-        //     for (i = 0; i < ni; i++) {
-        //         for (k = 0; k < 4; k++) {
-        //             printf("%g ", D[offset2d(i, k, max_ni_nj)]);
-        //         }
-        //         printf("\n");
-        //     }
-        // }
-        /*test*/
-
         for (k = 0; k < 4; k++) {
             for (i = 0; i < ni; i++) {
-                S[offset3d(i, j, k, ni, nj)] = D[offset2d(i, k, max_ni_nj)];
+                S[offset3d(i, j, k, ni, nj)] = D[offset2d(i, k, ni)];
             }
         }
     }
@@ -1804,13 +1932,13 @@ double step(double *A, double *B, double *C, double *D, double *current_Q,
                 }
         for (k = 0; k < 4; k++) {
             for (j = 0; j < nj; j++) {
-                D[offset2d(j, k, max_ni_nj)] = S[offset3d(i, j, k, ni, nj)];
+                D[offset2d(j, k, nj)] = S[offset3d(i, j, k, ni, nj)];
             }
         }
         btri4s(A, B, C, D, nj, 1, nj - 2);
         for (k = 0; k < 4; k++) {
             for (j = 0; j < nj; j++) {
-                S[offset3d(i, j, k, ni, nj)] = D[offset2d(j, k, max_ni_nj)];
+                S[offset3d(i, j, k, ni, nj)] = D[offset2d(j, k, nj)];
             }
         }
     }
