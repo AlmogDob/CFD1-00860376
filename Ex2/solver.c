@@ -42,6 +42,8 @@ epse
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
+#include <sys/stat.h>
+#include <dirent.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -54,6 +56,7 @@ epse
 #define dprintF(expr) do{printf("%d: ", __LINE__); printf(#expr " = %g\n", expr);} while(0)     /* macro for easy debuging*/
 #define dprintD(expr) do{printf("%d: ", __LINE__); printf(#expr " = %g\n", expr);} while(0)     /* macro for easy debuging*/
 
+int create_empty_dir(char *parent_directory);
 void read_input(char *input_dir, char *mesh_dir, double *x_vals_mat,
                 double *y_vals_mat);
 void read_mesh_file(FILE *mesh_fp, double *x_vals_mat,
@@ -140,7 +143,7 @@ double Mach_inf, angle_of_attack_deg, angle_of_attack_rad, density,
 environment_pressure, delta_t, Gamma, epse, epsi;
 
 int auto_run = 0;
-char auto_run_num[MAXWORD];
+char auto_dir[MAXWORD], auto_run_num[MAXWORD];
 
 int main(int argc, char const *argv[])
 {
@@ -157,12 +160,12 @@ int main(int argc, char const *argv[])
     FILE *mesh_fp, *iter_fp;
 
 /* getting the input directory and mesh directory*/
-    if (--argc != 2 && argc != 3) {
-        fprintf(stderr, "%s:%d: [Error] not right usage... Usage: main 'input file' 'mesh file'\n", __FILE__, __LINE__);
+    if (--argc != 2 && argc != 4) {
+        fprintf(stderr, "%s:%d: [Error] not right usage... Usage: main 'input file' 'mesh file' // optional: 'auto dir' 'num'\n", __FILE__, __LINE__);
         return -1;
-        if (argc == 3) {
-            auto_run = 1;
-        }
+    }
+    if (argc == 4) {
+        auto_run = 1;
     }
 
     strncpy(input_dir, (*(++argv)), MAXDIR);
@@ -179,7 +182,10 @@ int main(int argc, char const *argv[])
         return -1;
     }
 
-    strncpy(auto_run_num, *(++argv), MAXDIR);
+    if (auto_run) {
+        strncpy(auto_dir, (*(++argv)), MAXDIR);
+        strncpy(auto_run_num, (*(++argv)), MAXDIR);
+    }
 
 /*------------------------------------------------------------*/
 
@@ -356,6 +362,7 @@ int main(int argc, char const *argv[])
 
 /* Checking the input */
     printf("--------------------\n");
+    dprintINT(auto_run);
     dprintINT(ni);
     dprintINT(nj);
     dprintINT(i_TEL);
@@ -378,12 +385,14 @@ int main(int argc, char const *argv[])
 
     if (auto_run) {
         char temp_dir[MAXDIR];
-        strncpy(temp_dir, "results", MAXWORD);
+        strncpy(temp_dir, auto_dir, MAXWORD/2);
+        strncat(temp_dir, "/results", MAXWORD/2);
         strncat(temp_dir, auto_run_num, MAXWORD/2);
+        create_empty_dir(temp_dir);
         strncat(temp_dir, "/iterations.txt", MAXWORD/2);
         iter_fp = fopen(temp_dir, "wt");
     } else {
-        iter_fp = fopen("results/iterations.txt", "wt");
+        iter_fp = fopen("./results/iterations.txt", "wt");
     }
 
     initialize(current_Q, J_vals_mat, dxi_dx_mat, dxi_dy_mat, deta_dx_mat,
@@ -440,6 +449,47 @@ int main(int argc, char const *argv[])
 
     fclose(iter_fp);
 
+    return 0;
+}
+
+/* if allready exisest, delet all the files inside 
+returns 0 on success
+this functin handls the errors so on fail just quit */
+int create_empty_dir(char *parent_directory)
+{
+    char path_to_remove[BUFSIZ];
+
+    if (mkdir(parent_directory, 0777) == -1) {
+        if (errno == EEXIST) {
+            DIR *dir = opendir(parent_directory);
+            if (dir == NULL) {
+                fprintf(stderr, "%s:%d: [Error] problem opening '%s': %s\n", __FILE__, __LINE__, parent_directory, strerror(errno));
+                return 1;
+            }
+            struct dirent* entity;
+            entity = readdir(dir);
+            while (entity != NULL) {   /* directory is not empty */
+                strncpy(path_to_remove, parent_directory, BUFSIZ);
+                strncat(path_to_remove, "/", BUFSIZ/2);
+                strncat(path_to_remove, entity->d_name, BUFSIZ);
+                if (entity->d_type == DT_REG) {
+                    if (remove(path_to_remove) != 0) {
+                        fprintf(stderr, "%s:%d: [Error] problem removing '%s': %s\n", __FILE__, __LINE__, path_to_remove, strerror(errno));
+                        return 1;
+                    }
+                }
+                entity = readdir(dir);
+            }
+
+
+            closedir(dir);
+
+            return 0;
+        }
+
+        fprintf(stderr, "%s:%d: [Error] problem making '%s': %s\n", __FILE__, __LINE__, parent_directory, strerror(errno));
+        return 1;
+    }
     return 0;
 }
 
@@ -582,43 +632,53 @@ void output_solution(double *current_Q, double *U_mat, double *V_mat,
     FILE *Q3_fp; 
 
     if (auto_run) {
+        printf("here\n");
         char temp_dir[MAXDIR];
-        strncpy(temp_dir, "results", MAXWORD);
+
+        strncpy(temp_dir, auto_dir, MAXWORD/2);
+        strncat(temp_dir, "/results", MAXWORD/2);
         strncat(temp_dir, auto_run_num, MAXWORD/2);
         strncat(temp_dir, "/x_mat.txt", MAXWORD/2);
         x_fp = fopen(temp_dir, "wt");
 
-        strncpy(temp_dir, "results", MAXWORD);
+        strncpy(temp_dir, auto_dir, MAXWORD/2);
+        strncat(temp_dir, "/results", MAXWORD/2);
         strncat(temp_dir, auto_run_num, MAXWORD/2);
         strncat(temp_dir, "/y_mat.txt", MAXWORD/2);
         y_fp = fopen(temp_dir, "wt");
 
-        strncpy(temp_dir, "results", MAXWORD);
+        strncpy(temp_dir, auto_dir, MAXWORD/2);
+        strncat(temp_dir, "/results", MAXWORD/2);
         strncat(temp_dir, auto_run_num, MAXWORD/2);
         strncat(temp_dir, "/U_mat.txt", MAXWORD/2);
         U_fp = fopen(temp_dir, "wt");
 
-        strncpy(temp_dir, "results", MAXWORD);
+        strncpy(temp_dir, auto_dir, MAXWORD/2);
+        strncat(temp_dir, "/results", MAXWORD/2);
         strncat(temp_dir, auto_run_num, MAXWORD/2);
         strncat(temp_dir, "/V_mat.txt", MAXWORD/2);
         V_fp = fopen(temp_dir, "wt");
 
-        strncpy(temp_dir, "results", MAXWORD);
+        strncpy(temp_dir, auto_dir, MAXWORD/2);
+        strncat(temp_dir, "/results", MAXWORD/2);
         strncat(temp_dir, auto_run_num, MAXWORD/2);
         strncat(temp_dir, "/Q0_mat.txt", MAXWORD/2);
         Q0_fp = fopen(temp_dir, "wt");
 
-        strncpy(temp_dir, "results", MAXWORD);
+        strncpy(temp_dir, auto_dir, MAXWORD/2);
+        strncat(temp_dir, "/results", MAXWORD/2);
         strncat(temp_dir, auto_run_num, MAXWORD/2);
         strncat(temp_dir, "/Q1_mat.txt", MAXWORD/2);
         Q1_fp = fopen(temp_dir, "wt");
 
-        strncpy(temp_dir, "results", MAXWORD);
+        strncpy(temp_dir, auto_dir, MAXWORD/2);
+        strncat(temp_dir, "/results", MAXWORD/2);
         strncat(temp_dir, auto_run_num, MAXWORD/2);
         strncat(temp_dir, "/Q2_mat.txt", MAXWORD/2);
         Q2_fp = fopen(temp_dir, "wt");
 
-        strncpy(temp_dir, "results", MAXWORD);
+        strncpy(temp_dir, auto_dir, MAXWORD/2);
+        strncat(temp_dir, "/results", MAXWORD/2);
         strncat(temp_dir, auto_run_num, MAXWORD/2);
         strncat(temp_dir, "/Q3_mat.txt", MAXWORD/2);
         Q3_fp = fopen(temp_dir, "wt");

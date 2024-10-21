@@ -1,13 +1,13 @@
-main: build_main run_main clean_main  
-	@echo main done
-build_main: main.c
-	gcc -g -Wall -Wextra ./main.c -lm -o main
+solver: build_solver run_solver clean_solver  
+	@echo solver done
+build_solver: solver.c
+	gcc -g -Wall -Wextra ./solver.c -lm -o solver
 
-run_main:
-	./main $(IN_FILL) $(MESH_FILL)
+run_solver:
+	./solver $(IN_FILL) $(MESH_FILL) $(AUTO_DIR) $(NUM)
 
-clean_main:
-	rm main
+clean_solver:
+	rm solver
 
 ##########################################################
 mesh_generate: build_mesh_generate run_mesh_generate clean_mesh_generate  
