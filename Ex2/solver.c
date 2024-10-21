@@ -410,8 +410,8 @@ int main(int argc, char const *argv[])
         advance_Q(next_Q, current_Q, S, J_vals_mat);
         copy_3Dmat_to_3Dmat(current_Q, next_Q);
         
-        printf("%d: %f\n", iteration, current_S_norm);
-        fprintf(iter_fp, "%d %f\n", iteration, current_S_norm);
+        printf("%5d: %f\n", iteration, current_S_norm);
+        fprintf(iter_fp, "%5d %f\n", iteration, current_S_norm);
 
         if (fabs(current_S_norm) / max_S_norm < 1e-6 || current_S_norm == 0 || isnan(current_S_norm)) {
             break;
