@@ -321,8 +321,9 @@ int main()
         copy_mat(x_vals_mat_current, x_vals_mat_next);
         copy_mat(y_vals_mat_current, y_vals_mat_next);
 
+        printf("%5d. Lx_max: %0.10f, Ly_max: %0.10f\n",i_index+1, result.x, result.y);
         /* checking convergenc */
-        if (log10(fabs(first_result.x/result.x)) > 5 && log10(fabs(first_result.y/result.y))) {
+        if (log10(fabs(first_result.x/result.x)) > 6 && log10(fabs(first_result.y/result.y)) > 6) {
             break;
         }
     }

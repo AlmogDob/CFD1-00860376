@@ -153,7 +153,7 @@ int main(int argc, char const *argv[])
     double *x_vals_mat, *y_vals_mat, *J_vals_mat, *first_Q,
     *current_Q, *next_Q, *S, *W, *dxi_dx_mat, *dxi_dy_mat, *deta_dx_mat,
     *deta_dy_mat, *s2, *rspec, *qv, *dd, *U_mat, *V_mat, *A, *B, *C, *D,
-    *drr, *drp, max_S_norm = 0, current_S_norm;
+    *drr, *drp, max_S_norm = 0, current_S_norm, first_S_norm;
     
     int i_index, j_index, k_index;
 
@@ -408,13 +408,16 @@ int main(int argc, char const *argv[])
         if (max_S_norm < fabs(current_S_norm)) {
             max_S_norm = fabs(current_S_norm);
         }
+        if (iteration == 0) {
+            first_S_norm = current_S_norm;
+        }
         advance_Q(next_Q, current_Q, S, J_vals_mat);
         copy_3Dmat_to_3Dmat(current_Q, next_Q);
         
-        printf("%5d: %f\n", iteration, current_S_norm);
+        printf("%5d: %0.10f\n", iteration, current_S_norm);
         fprintf(iter_fp, "%5d %f\n", iteration, current_S_norm);
 
-        if (fabs(current_S_norm) / max_S_norm < 1e-6 || current_S_norm == 0 || isnan(current_S_norm)) {
+        if (fabs(current_S_norm) / first_S_norm < 1e-8 || current_S_norm == 0 || isnan(current_S_norm)) {
             break;
         }
     }
