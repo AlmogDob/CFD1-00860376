@@ -370,7 +370,7 @@ int main(int argc, char const *argv[])
                deta_dy_mat, x_vals_mat, y_vals_mat);
     copy_3Dmat_to_3Dmat(first_Q, current_Q);
     
-    for (int iteration = 0; iteration < 1e3; iteration++) {
+    for (int iteration = 0; iteration < 1e6; iteration++) {
         apply_BC(current_Q, J_vals_mat, dxi_dx_mat, dxi_dy_mat, deta_dx_mat, deta_dy_mat);
         current_S_norm = step(A, B, C, D, current_Q, S, W, J_vals_mat,
                               dxi_dx_mat, dxi_dy_mat, deta_dx_mat,
@@ -381,11 +381,17 @@ int main(int argc, char const *argv[])
         advance_Q(next_Q, current_Q, S, J_vals_mat);
         copy_3Dmat_to_3Dmat(current_Q, next_Q);
         
-        printf("%d: %f\n", iteration, current_S_norm);
+        printf("%d: %g\n", iteration, current_S_norm);
 
-        if (fabs(current_S_norm) / max_S_norm < 1e-6 || current_S_norm == 0 || isnan(current_S_norm)) {
+        if (current_S_norm/ max_S_norm < 1e-6 || current_S_norm == 0 || isnan(current_S_norm)) {
             break;
         }
+    }
+
+    int layer;
+    for (layer = 0; layer < 4; layer++) {
+        printf("____________________________~%d~______________________________\n", layer);
+        print_layer_of_mat3D(current_Q, layer);
     }
 
     output_solution(current_Q, U_mat, V_mat, x_vals_mat, y_vals_mat, dxi_dx_mat, dxi_dy_mat, deta_dx_mat, deta_dy_mat);
@@ -1429,15 +1435,15 @@ void LHSY(double *A, double *B, double *C, double *Q,
 {
     int j, n, m; 
 
-    for (j = 0; j < max_ni_nj; j++) {
-        for (n = 0; n < 4; n++) {
-            for (m = 0; m < 4; m++) {
-                    A[offset3d(j, m, n, max_ni_nj, 4)] = 0;
-                    B[offset3d(j, m, n, max_ni_nj, 4)] = 0;
-                    C[offset3d(j, m, n, max_ni_nj, 4)] = 0;
-            }
-        }
-    }
+    // for (j = 0; j < max_ni_nj; j++) {
+    //     for (n = 0; n < 4; n++) {
+    //         for (m = 0; m < 4; m++) {
+    //                 A[offset3d(j, m, n, max_ni_nj, 4)] = 0;
+    //                 B[offset3d(j, m, n, max_ni_nj, 4)] = 0;
+    //                 C[offset3d(j, m, n, max_ni_nj, 4)] = 0;
+    //         }
+    //     }
+    // }
 
     for (j = 0; j < nj; j++) {
         calculate_B_hat_i_const(B, Q, deta_dx_mat, deta_dy_mat, i, j);
@@ -1641,6 +1647,7 @@ double step(double *A, double *B, double *C, double *D, double *current_Q,
                     fprintf(stderr, "%s:%d: [Erorr] problem with smoothx in LHSX\n", __FILE__, __LINE__);
                     exit(1);
                 }
+       
         for (k = 0; k < 4; k++) {
             for (i = 0; i < ni; i++) {
                 D[offset2d(i, k, ni)] = S[offset3d(i, j, k, ni, nj)];
