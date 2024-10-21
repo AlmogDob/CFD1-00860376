@@ -632,7 +632,6 @@ void output_solution(double *current_Q, double *U_mat, double *V_mat,
     FILE *Q3_fp; 
 
     if (auto_run) {
-        printf("here\n");
         char temp_dir[MAXDIR];
 
         strncpy(temp_dir, auto_dir, MAXWORD/2);

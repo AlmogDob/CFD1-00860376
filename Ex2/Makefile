@@ -22,7 +22,10 @@ clean_mesh_generate:
 	rm mesh_generate
 
 ##########################################################
-test:
-	gcc -Wall -Wextra ./test.c -lm -o test
-	./test
-	rm test
+automat: build_solver create_and_run_automat clean_solver
+	@echo automat done
+
+create_and_run_automat:
+	gcc -Wall -Wextra ./automat.c -lm -o automat
+	./automat
+	rm automat
