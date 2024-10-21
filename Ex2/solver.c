@@ -634,6 +634,7 @@ void output_solution(double *current_Q, double *U_mat, double *V_mat,
     FILE *Q1_fp; 
     FILE *Q2_fp; 
     FILE *Q3_fp; 
+    FILE *ni_nj_fp;
 
     if (auto_run) {
         char temp_dir[MAXDIR];
@@ -686,6 +687,12 @@ void output_solution(double *current_Q, double *U_mat, double *V_mat,
         strncat(temp_dir, "/Q3_mat.txt", MAXWORD/2);
         Q3_fp = fopen(temp_dir, "wt");
 
+        strncpy(temp_dir, auto_dir, MAXWORD/2);
+        strncat(temp_dir, "/results", MAXWORD/2);
+        strncat(temp_dir, auto_run_num, MAXWORD/2);
+        strncat(temp_dir, "/ni_nj.txt", MAXWORD/2);
+        ni_nj_fp = fopen(temp_dir, "wt");
+
     } else {
         x_fp = fopen("./results/x_mat.txt", "wt");
         y_fp = fopen("./results/y_mat.txt", "wt");
@@ -695,6 +702,7 @@ void output_solution(double *current_Q, double *U_mat, double *V_mat,
         Q1_fp = fopen("./results/Q1_mat.txt", "wt");
         Q2_fp = fopen("./results/Q2_mat.txt", "wt");
         Q3_fp = fopen("./results/Q3_mat.txt", "wt");
+        ni_nj_fp = fopen("./results/ni_nj.txt", "wt");
     }
 
     output_mat2D_to_file(x_fp, x_vals_mat);
@@ -705,6 +713,7 @@ void output_solution(double *current_Q, double *U_mat, double *V_mat,
     output_layer_of_mat3D_to_file(Q1_fp, current_Q, 1);
     output_layer_of_mat3D_to_file(Q2_fp, current_Q, 2);
     output_layer_of_mat3D_to_file(Q3_fp, current_Q, 3);
+    fprintf(ni_nj_fp, "%d %d", ni, nj);
 
     fclose(x_fp);
     fclose(y_fp);
@@ -714,6 +723,7 @@ void output_solution(double *current_Q, double *U_mat, double *V_mat,
     fclose(Q1_fp);
     fclose(Q2_fp);
     fclose(Q3_fp);
+    fclose(ni_nj_fp);
 }
 
 /* converts a 2D index into 1D index
