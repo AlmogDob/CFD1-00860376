@@ -140,7 +140,7 @@ void initialize(double *Q, double *J_vals_mat, double *dxi_dx_mat,
 /* global variables */
 int ni, nj, max_ni_nj, i_TEL, i_LE, i_TEU, j_TEL, j_LE, j_TEU;
 double Mach_inf, angle_of_attack_deg, angle_of_attack_rad, density,
-environment_pressure, delta_t, Gamma, epse, epsi;
+environment_pressure, delta_t, Gamma, epse, epsi, max_iteration;
 
 int auto_run = 0;
 char auto_dir[MAXWORD], auto_run_num[MAXWORD];
@@ -379,6 +379,7 @@ int main(int argc, char const *argv[])
     dprintD(Gamma);
     dprintINT(max_ni_nj);
     dprintD(epse);
+    dprintD(max_iteration);
     printf("--------------------\n");
 
 /*------------------------------------------------------------*/
@@ -399,7 +400,7 @@ int main(int argc, char const *argv[])
                deta_dy_mat, x_vals_mat, y_vals_mat);
     copy_3Dmat_to_3Dmat(first_Q, current_Q);
     
-    for (int iteration = 0; iteration < 1e6; iteration++) {
+    for (int iteration = 0; iteration < max_iteration; iteration++) {
         apply_BC(current_Q, J_vals_mat, dxi_dx_mat, dxi_dy_mat, deta_dx_mat, deta_dy_mat);
         current_S_norm = step(A, B, C, D, current_Q, S, W, J_vals_mat,
                               dxi_dx_mat, dxi_dy_mat, deta_dx_mat,
@@ -572,6 +573,9 @@ void read_input_file(FILE *fp)
             fscanf(fp, "%g", &temp);
             epse = (double)temp;
             epsi = epse * 2;
+        } else if (!strcmp(current_word, "max_iteration")) {
+            fscanf(fp, "%g", &temp);
+            max_iteration = (double)temp;
         } else if (!strcmp(current_word, "i_TEL")) {
             fscanf(fp, "%d", &i_TEL);
         } else if (!strcmp(current_word, "i_LE")) {

@@ -36,3 +36,6 @@ Gamma
 
 epse
 0.06
+
+max_iteration
+1e6
