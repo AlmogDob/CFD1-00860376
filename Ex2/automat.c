@@ -8,8 +8,16 @@
 #include <unistd.h>
 #include <stdarg.h>
 
+#define dfprintINT(fp, expr) do{fprintf(fp, #expr "\n%d\n\n", expr);} while(0)     /* macro for easy debuging*/
+#define dfprintD(fp, expr) do{fprintf(fp, #expr "\n%g\n\n", expr);} while(0)     /* macro for easy debuging*/
+
 int create_empty_dir(char *parent_directory);
 void print_command_to_file(FILE *fp, char *program, ...);
+void create_input_file(char *file_name, int i_TEL, int i_LE, int i_TEU, 
+                       int j_TEL, int j_LE, int j_TEU, double Mach_inf, 
+                       double angle_of_attack_deg, double density, 
+                       double environment_pressure, double delta_t,
+                       double Gamma, double epse, double max_iteration);
 
 int main()
 {
@@ -18,28 +26,41 @@ int main()
         return 1;
     }
 
-    char temp_dir[BUFSIZ];
+    char temp_dir[BUFSIZ], temp1[BUFSIZ], temp_input[BUFSIZ], temp_num[BUFSIZ];
+
     strncpy(temp_dir, parent_dir, BUFSIZ);
     strncat(temp_dir, "/command_to_run.txt", BUFSIZ/2);
     FILE *fp = fopen(temp_dir, "wt");
 
     fprintf(fp, "make build_solver\n");
 
-    print_command_to_file(fp,
-                          "./solver",
-                          "./input.txt",
-                          "./mesh_output.txt",
-                          "./auto_results",
-                          "70",
-                          NULL);
-    print_command_to_file(fp,
-                          "./solver",
-                          "./input.txt",
-                          "./mesh_output.txt",
-                          "./auto_results",
-                          "69",
-                          NULL);
+    for (int i = 1; i <= 10; i++) {
+        strncpy(temp_dir, parent_dir, BUFSIZ);
+        strncat(temp_dir, "/input", BUFSIZ/2);
+        sprintf(temp1, "%d.txt", i);
+        strncat(temp_dir, temp1, BUFSIZ/2);
+        create_input_file(temp_dir, 11, 25, 39, 0, 0, 0, 1.5, 0, 1.225, 101325, (i*2)*1e-5, 1.4, 0.06, 1e6);
 
+
+        strncpy(temp_dir, parent_dir, BUFSIZ);
+        strncat(temp_dir, "/command_to_run.txt", BUFSIZ/2);
+
+        strncpy(temp_input, parent_dir, BUFSIZ);
+        strncat(temp_input, "/input", BUFSIZ/2);
+        sprintf(temp1, "%d.txt", i);
+        strncat(temp_input, temp1, BUFSIZ/2);
+
+        sprintf(temp_num, "%d", i);
+
+        print_command_to_file(fp,
+                            "./solver",
+                            temp_input,
+                            "./mesh_output.txt",
+                            "./auto_results",
+                            temp_num,
+                            NULL);
+
+    }
     fprintf(fp, "make clean_solver\n");
 
     // int id = fork();
@@ -109,18 +130,6 @@ int create_empty_dir(char *parent_directory)
 
 void print_command_to_file(FILE *fp, char *program, ...)
 {
-    // printf("%s\n", program);
-
-    // va_list args;
-    // va_start(args, program);
-    // char *temp_string;
-    // while ((temp_string = va_arg(args, char *)) != NULL) {
-    //     printf("%s\n", temp_string);
-    // }
-    // printf("\n");
-
-    // va_end(args);
-
     fprintf(fp, "%s ", program);
     va_list args;
     va_start(args, program);
@@ -130,5 +139,28 @@ void print_command_to_file(FILE *fp, char *program, ...)
     }
     va_end(args);
     fprintf(fp, "\n");
+}
 
+void create_input_file(char *file_name, int i_TEL, int i_LE, int i_TEU, 
+                       int j_TEL, int j_LE, int j_TEU, double Mach_inf, 
+                       double angle_of_attack_deg, double density, 
+                       double environment_pressure, double delta_t,
+                       double Gamma, double epse, double max_iteration)
+{
+    FILE *input_fp = fopen(file_name, "wt");
+
+    dfprintINT(input_fp, i_TEL);
+    dfprintINT(input_fp, i_LE);
+    dfprintINT(input_fp, i_TEU);
+    dfprintINT(input_fp, j_TEL);
+    dfprintINT(input_fp, j_LE);
+    dfprintINT(input_fp, j_TEU);
+    dfprintD(input_fp, Mach_inf);
+    dfprintD(input_fp, angle_of_attack_deg);
+    dfprintD(input_fp, density);
+    dfprintD(input_fp, environment_pressure);
+    dfprintD(input_fp, delta_t);
+    dfprintD(input_fp, Gamma);
+    dfprintD(input_fp, epse);
+    dfprintD(input_fp, max_iteration);
 }
