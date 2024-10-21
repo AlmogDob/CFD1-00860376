@@ -388,11 +388,11 @@ int main(int argc, char const *argv[])
         }
     }
 
-    int layer;
-    for (layer = 0; layer < 4; layer++) {
-        printf("____________________________~%d~______________________________\n", layer);
-        print_layer_of_mat3D(current_Q, layer);
-    }
+    // int layer;
+    // for (layer = 0; layer < 4; layer++) {
+    //     printf("____________________________~%d~______________________________\n", layer);
+    //     print_layer_of_mat3D(current_Q, layer);
+    // }
 
     output_solution(current_Q, U_mat, V_mat, x_vals_mat, y_vals_mat, dxi_dx_mat, dxi_dy_mat, deta_dx_mat, deta_dy_mat);
     
