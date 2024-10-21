@@ -40,6 +40,7 @@ int main()
                           "69",
                           NULL);
 
+    fprintf(fp, "make clean_solver\n");
 
     // int id = fork();
     // if (id == 0) {

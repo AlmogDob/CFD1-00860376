@@ -417,7 +417,7 @@ int main(int argc, char const *argv[])
         printf("%5d: %0.10f\n", iteration, current_S_norm);
         fprintf(iter_fp, "%5d %f\n", iteration, current_S_norm);
 
-        if (fabs(current_S_norm) / first_S_norm < 1e-8 || current_S_norm == 0 || isnan(current_S_norm)) {
+        if (fabs(current_S_norm) / first_S_norm < 1e-6 || current_S_norm == 0 || isnan(current_S_norm)) {
             break;
         }
     }
