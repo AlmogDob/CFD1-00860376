@@ -17,7 +17,7 @@ j_TEU
 0
 
 Mach_inf
-0.3
+0.9
 
 angle_of_attack_deg
 0
