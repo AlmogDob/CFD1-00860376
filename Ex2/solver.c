@@ -868,7 +868,7 @@ dxi_dy_mat  - 1D array of 2D matrix
 deta_dx_mat - 1D array of 2D matrix 
 deta_dy_mat - 1D array of 2D matrix 
 Q           - 1D array of 3D matrix
-i, j - the points coordinates */
+i, j        - the points coordinates */
 void contravariant_velocities(double *U, double *V,
                               double *dxi_dx_mat, double *dxi_dy_mat,
                               double *deta_dx_mat, double *deta_dy_mat,
@@ -934,7 +934,7 @@ dxi_dy_mat  - 1D array of 2D matrix
 deta_dx_mat - 1D array of 2D matrix
 deta_dy_mat - 1D array of 2D matrix
 Q           - 1D array of 3D matrix
-i, j - the points coordinates */
+i, j        - the points coordinates */
 void calculate_E_hat_at_a_point(double *E0, double *E1, double *E2,
                                 double *E3, double *J_vals_mat,
                                 double *dxi_dx_mat, double *dxi_dy_mat,
@@ -974,7 +974,7 @@ dxi_dy_mat  - 1D array of 2D matrix
 deta_dx_mat - 1D array of 2D matrix
 deta_dy_mat - 1D array of 2D matrix
 Q           - 1D array of 3D matrix
-i, j - the points coordinates */
+i, j        - the points coordinates */
 void calculate_F_hat_at_a_point(double *F0, double *F1, double *F2,
                                 double *F3, double *J_vals_mat,
                                 double *dxi_dx_mat, double *dxi_dy_mat,
@@ -1857,7 +1857,7 @@ C           - 1D array of 3D matrix
 Q           - 1D array of 3D matrix 
 deta_dx_mat - 1D array of 2D matrix
 deta_dy_mat - 1D array of 2D matrix
-i          - the second direction index */
+i           - the second direction index */
 void LHSY(double *A, double *B, double *C, double *Q,
           double *deta_dx_mat, double *deta_dy_mat, int i)
 {
