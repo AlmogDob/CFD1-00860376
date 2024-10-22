@@ -37,6 +37,9 @@ gamma
 
 epse
 0.06
+
+max_iteration
+1e6
 */
 
 #include <stdio.h>
@@ -72,7 +75,6 @@ int offset3d(int i, int j, int k, int ni, int nj);
 void print_mat2D(double *data);
 void print_layer_of_mat3D(double *data, int layer);
 double first_deriv(double *mat, char diraction, int i, int j);
-double second_deriv(double *mat, char diraction, int i, int j);
 double calculate_one_over_jacobian_at_a_point(double *x_vals_mat,
                                               double *y_vals_mat, int i,
                                               int j);
@@ -94,6 +96,13 @@ void calculate_F_hat_at_a_point(double *F0, double *F1, double *F2,
                                 double *deta_dx_mat, double *deta_dy_mat,
                                 double *Q, int i, int j);                               
 void initialize_flow_field(double *Q);
+void matrices_coeffic_and_Jacobian(double *J_vals_mat, double *dxi_dx_mat,
+                                   double *dxi_dy_mat, double *deta_dx_mat,
+                                   double *deta_dy_mat, double *x_vals_mat,
+                                   double *y_vals_mat);
+void initialize(double *Q, double *J_vals_mat, double *dxi_dx_mat,
+                double *dxi_dy_mat, double *deta_dx_mat,
+                double *deta_dy_mat, double *x_vals_mat, double *y_vals_mat);
 void RHS(double *S, double *W, double *Q, double *J_vals_mat,
          double *dxi_dx_mat, double *dxi_dy_mat, double *deta_dx_mat,
          double *deta_dy_mat, double *s2, double *rspec, double *qv, double *dd);
@@ -129,13 +138,6 @@ double step(double *A, double *B, double *C, double *D, double *current_Q,
           double *S, double *W, double *J_vals_mat, double *dxi_dx_mat,
           double *dxi_dy_mat, double *deta_dx_mat, double *deta_dy_mat,
           double *s2, double *drr, double *drp, double *rspec, double *qv, double *dd);
-void matrices_coeffic_and_Jacobian(double *J_vals_mat, double *dxi_dx_mat,
-                                   double *dxi_dy_mat, double *deta_dx_mat,
-                                   double *deta_dy_mat, double *x_vals_mat,
-                                   double *y_vals_mat);
-void initialize(double *Q, double *J_vals_mat, double *dxi_dx_mat,
-                double *dxi_dy_mat, double *deta_dx_mat,
-                double *deta_dy_mat, double *x_vals_mat, double *y_vals_mat);
 
 /* global variables */
 int ni, nj, max_ni_nj, i_TEL, i_LE, i_TEU, j_TEL, j_LE, j_TEU;
@@ -456,9 +458,12 @@ int main(int argc, char const *argv[])
     return 0;
 }
 
-/* if allready exisest, delet all the files inside 
+/* create empty dir at 'parent directory'.
+if allready exisest, delet all the files inside 
 returns 0 on success
-this functin handls the errors so on fail just quit */
+this functin handls the errors so on fail just quit
+argument list:
+parent_directory - char pointer to the directory name */
 int create_empty_dir(char *parent_directory)
 {
     char path_to_remove[BUFSIZ];
@@ -499,10 +504,10 @@ int create_empty_dir(char *parent_directory)
 
 /* sets 'flags' and variables according to the input file
 argument list:
-input_dir - the directory of the input file 
-mesh_dir - the directory of the mesh file
-x_vals_mat - 1D array of the x valuse 
-y_vals_mat - 1D array of the y valuse */
+input_dir  - the directory of the input file 
+mesh_dir   - the directory of the mesh file
+x_vals_mat - 1D array of 2D matrix 
+y_vals_mat - 1D array of 2D matrix */
 void read_input(char *input_dir, char *mesh_dir, double *x_vals_mat,
                 double *y_vals_mat)
 {
@@ -527,9 +532,9 @@ void read_input(char *input_dir, char *mesh_dir, double *x_vals_mat,
 
 /* reading the mesh file
 argument list:
-mesh_dir - the directory of the mesh file
-x_vals_mat - 1D array of the x valuse 
-y_vals_mat - 1D array of the y valuse */
+mesh_fp    - file pointer to the mesh
+x_vals_mat - 1D array of 2D matrix 
+y_vals_mat - 1D array of 2D matrix */
 void read_mesh_file(FILE *mesh_fp, double *x_vals_mat,
                    double *y_vals_mat)
 {
@@ -546,7 +551,8 @@ void read_mesh_file(FILE *mesh_fp, double *x_vals_mat,
 }
 
 /* read input parameters from input file
-fp - file pointer */
+argument list:
+fp - file pointer to input file */
 void read_input_file(FILE *fp)
 {
     char current_word[MAXWORD];
@@ -595,9 +601,10 @@ void read_input_file(FILE *fp)
     }
 }
 
-/* read matrix from file into a 2D matrix (1D array)
-fp - file pointer
-des - 1D array */
+/* read matrix from file into a 1D array
+argument list:
+fp  - file pointer
+des - 1D array of 2D matrix */
 void read_mat_from_file(FILE *fp, double *des)
 {
     float temp;
@@ -610,6 +617,17 @@ void read_mat_from_file(FILE *fp, double *des)
     }
 }
 
+/* output the flow field and mesh
+argument list:
+current_Q   - 1D array of 3D matrix 
+U_mat       - 1D array of 2D matrix 
+V_mat       - 1D array of 2D matrix 
+x_vals_mat  - 1D array of 2D matrix 
+y_vals_mat  - 1D array of 2D matrix 
+dxi_dx_mat  - 1D array of 2D matrix 
+dxi_dy_mat  - 1D array of 2D matrix 
+deta_dx_mat - 1D array of 2D matrix 
+deta_dy_mat - 1D array of 2D matrix */
 void output_solution(double *current_Q, double *U_mat, double *V_mat,
                      double *x_vals_mat, double *y_vals_mat,
                      double *dxi_dx_mat, double *dxi_dy_mat,
@@ -731,8 +749,8 @@ void output_solution(double *current_Q, double *U_mat, double *V_mat,
 
 /* converts a 2D index into 1D index
 argument list:
-i - first direction
-j - second direction
+i  - first direction
+j  - second direction
 ni - first direction size */
 int offset2d(int i, int j, int ni)
 {
@@ -744,9 +762,9 @@ int offset2d(int i, int j, int ni)
 
 /* converts a 3D index into 1D index
 argument list:
-i - first direction
-j - second direction
-k - third direction
+i  - first direction
+j  - second direction
+k  - third direction
 ni - first direction size
 nj - second direction size */
 int offset3d(int i, int j, int k, int ni, int nj)
@@ -758,6 +776,9 @@ int offset3d(int i, int j, int k, int ni, int nj)
     return (k * nj + j) * ni + i;
 }
 
+/* printing a 2D matrix (1D array) of values to stdout 
+argument list:
+data - 1D array of 2D matrix */
 void print_mat2D(double *data)
 {
     int j_index, i_index;
@@ -772,6 +793,10 @@ void print_mat2D(double *data)
     printf("\n");
 }
 
+/* printing on layer of 3D matrix (1D array) of values to stdout 
+argument list:
+data  - 1D array of 3D matrix 
+layer - the third direction index */
 void print_layer_of_mat3D(double *data, int layer)
 {
     int j_index, i_index;
@@ -788,9 +813,9 @@ void print_layer_of_mat3D(double *data, int layer)
 
 /* return the second order first derivitive from the valuse in the mat matrix
 argument list:
-mat - 1D array of valuse
+mat       - 1D array of 2D matrix
 diraction - i or j
-i, j - the points coordinates */
+i, j      - the points coordinates */
 double first_deriv(double *mat, char diraction, int i, int j)
 {
     int j_min = 0, j_max = nj-1, i_min = 0, i_max = ni-1;
@@ -815,11 +840,11 @@ double first_deriv(double *mat, char diraction, int i, int j)
     return NAN;
 }
 
-/* calculating the jacobian in a single point
+/* calculating one over the jacobian at a single point
 argument list:
-x_vals_mat - 1D array of the x valuse 
-y_vals_mat - 1D array of the y valuse 
-i, j - the points coordinates */
+x_vals_mat - 1D array of 2D matrix 
+y_vals_mat - 1D array of 2D matrix 
+i, j       - the points coordinates */
 double calculate_one_over_jacobian_at_a_point(double *x_vals_mat,
                                               double *y_vals_mat, int i,
                                               int j)
@@ -834,8 +859,15 @@ double calculate_one_over_jacobian_at_a_point(double *x_vals_mat,
     return (dx_dxi*dy_deta - dy_dxi*dx_deta);
 }
 
-/* calculating the contravariant velocities in a single point
+/* calculating the contravariant velocities at a single point
 argument list:
+U           - 1D array of 2D matrix 
+V           - 1D array of 2D matrix 
+dxi_dx_mat  - 1D array of 2D matrix 
+dxi_dy_mat  - 1D array of 2D matrix 
+deta_dx_mat - 1D array of 2D matrix 
+deta_dy_mat - 1D array of 2D matrix 
+Q           - 1D array of 3D matrix
 i, j - the points coordinates */
 void contravariant_velocities(double *U, double *V,
                               double *dxi_dx_mat, double *dxi_dy_mat,
@@ -856,22 +888,53 @@ void contravariant_velocities(double *U, double *V,
     *V = deta_dx * u + deta_dy * v;
 }
 
+/* calculating the horizontal and vertical velocities at a single point
+argument list:
+u    - a pointer to the horizontal velocity 
+v    - a pointer to the vertical velocity 
+Q    - 1D array of 3D matrix
+i, j - the points coordinates */
 void calculate_u_and_v(double *u, double *v, double *Q, int i, int j)
 {
     *u = Q[offset3d(i, j, 1, ni, nj)] / Q[offset3d(i, j, 0, ni, nj)]; /* rho*u / rho */
     *v = Q[offset3d(i, j, 2, ni, nj)] / Q[offset3d(i, j, 0, ni, nj)]; /* rho*v / rho */
 }
 
+/* calculating the pressure according to the energy, density, and the horizontal and vertical velocities
+argument list:
+energy - the energy
+rho    - the density
+u      - the horizontal velocity
+v      - the vertical velocity  */
 double calculate_p(double energy, double rho, double u, double v)
 {
     return (Gamma - 1) * (energy - 0.5 * rho * (u * u + v * v));
 }
 
+/* calculating the energy according to the pressure, density, and the horizontal and vertical velocities
+argument list:
+p   - the pressure
+u   - the horizontal velocity
+v   - the vertical velocity 
+rho - the density */
 double calculate_energy(double p, double u, double v, double rho)
 {
     return p / (Gamma - 1) + rho * (u * u + v * v) / 2;
 }
 
+/* calculating the inviscid rotated fluxes E vector at a single point
+argument list:
+E0          - a pointer to the 0 element of the E vector
+E1          - a pointer to the 1 element of the E vector
+E2          - a pointer to the 2 element of the E vector
+E3          - a pointer to the 3 element of the E vector
+J_vals_mat  - 1D array of 2D matrix
+dxi_dx_mat  - 1D array of 2D matrix
+dxi_dy_mat  - 1D array of 2D matrix
+deta_dx_mat - 1D array of 2D matrix
+deta_dy_mat - 1D array of 2D matrix
+Q           - 1D array of 3D matrix
+i, j - the points coordinates */
 void calculate_E_hat_at_a_point(double *E0, double *E1, double *E2,
                                 double *E3, double *J_vals_mat,
                                 double *dxi_dx_mat, double *dxi_dy_mat,
@@ -899,6 +962,19 @@ void calculate_E_hat_at_a_point(double *E0, double *E1, double *E2,
 
 }
 
+/* calculating the inviscid rotated fluxes F vector at a single point
+argument list:
+F0          - a pointer to the 0 element of the F vector
+F1          - a pointer to the 1 element of the F vector
+F2          - a pointer to the 2 element of the F vector
+F3          - a pointer to the 3 element of the F vector
+J_vals_mat  - 1D array of 2D matrix
+dxi_dx_mat  - 1D array of 2D matrix
+dxi_dy_mat  - 1D array of 2D matrix
+deta_dx_mat - 1D array of 2D matrix
+deta_dy_mat - 1D array of 2D matrix
+Q           - 1D array of 3D matrix
+i, j - the points coordinates */
 void calculate_F_hat_at_a_point(double *F0, double *F1, double *F2,
                                 double *F3, double *J_vals_mat,
                                 double *dxi_dx_mat, double *dxi_dy_mat,
@@ -927,6 +1003,9 @@ void calculate_F_hat_at_a_point(double *F0, double *F1, double *F2,
 
 }
 
+/* initializing the flow field according to the free flow conditions
+argument list:
+Q - 1D array of 3D matrix */
 void initialize_flow_field(double *Q)
 {
     double u, v, energy, p, rho, speed_of_sound, velocity;
@@ -951,6 +1030,123 @@ void initialize_flow_field(double *Q)
     }
 }
 
+/* setting the matrices coeffictions and jacobian matrixes according to the mesh
+argument list:
+J_vals_mat  - 1D array of 2D matrix
+dxi_dx_mat  - 1D array of 2D matrix
+dxi_dy_mat  - 1D array of 2D matrix
+deta_dx_mat - 1D array of 2D matrix
+deta_dy_mat - 1D array of 2D matrix
+x_vals_mat  - 1D array of 2D matrix
+y_vals_mat  - 1D array of 2D matrix */
+void matrices_coeffic_and_Jacobian(double *J_vals_mat, double *dxi_dx_mat,
+                                   double *dxi_dy_mat, double *deta_dx_mat,
+                                   double *deta_dy_mat, double *x_vals_mat,
+                                   double *y_vals_mat)
+{
+    double *dx_dxi_mat = malloc(sizeof(double) * ni * nj);
+    double *dy_dxi_mat = malloc(sizeof(double) * ni * nj);
+    double *dx_deta_mat = malloc(sizeof(double) * ni * nj);
+    double *dy_deta_mat = malloc(sizeof(double) * ni * nj);
+
+    for (int i = 0; i < ni; i++) {
+        for (int j = 0; j < nj; j++) {
+            int index = offset2d(i, j, ni);
+            double dx_dxi = first_deriv(x_vals_mat, 'i', i, j);
+            double dx_deta = first_deriv(x_vals_mat, 'j', i, j);
+            double dy_dxi = first_deriv(y_vals_mat, 'i', i, j);
+            double dy_deta = first_deriv(y_vals_mat, 'j', i, j);
+
+            dx_dxi_mat[index] = dx_dxi;
+            dy_dxi_mat[index] = dy_dxi;
+            dx_deta_mat[index] = dx_deta;
+            dy_deta_mat[index] = dy_deta;
+
+            double J = 1.0 / (dx_dxi * dy_deta - dy_dxi * dx_deta);
+            J_vals_mat[index] = J;
+
+            dxi_dx_mat[index]  =   J * dy_deta;
+            dxi_dy_mat[index]  = - J * dx_deta;
+            deta_dx_mat[index] = - J * dy_dxi;
+            deta_dy_mat[index] =   J * dx_dxi;
+        }
+    }
+
+
+    FILE *J_vals_fp = fopen("./checks/J_vals_mat.txt", "wt");
+
+    FILE *dxi_dx_fp  = fopen("./checks/dxi_dx.txt", "wt");
+    FILE *dxi_dy_fp  = fopen("./checks/dxi_dy.txt", "wt");
+    FILE *deta_dx_fp = fopen("./checks/deta_dx.txt", "wt");
+    FILE *deta_dy_fp = fopen("./checks/deta_dy.txt", "wt");
+
+    FILE *dx_dxi_fp  = fopen("./checks/dx_dxi.txt", "wt");
+    FILE *dy_dxi_fp  = fopen("./checks/dy_dxi.txt", "wt");
+    FILE *dx_deta_fp = fopen("./checks/dx_deta.txt", "wt");
+    FILE *dy_deta_fp = fopen("./checks/dy_deta.txt", "wt");
+
+    output_mat2D_to_file(J_vals_fp, J_vals_mat);
+
+    output_mat2D_to_file(dxi_dx_fp, dxi_dx_mat);
+    output_mat2D_to_file(deta_dx_fp, deta_dx_mat);
+    output_mat2D_to_file(dxi_dy_fp, dxi_dy_mat);
+    output_mat2D_to_file(deta_dy_fp, deta_dy_mat);
+
+    output_mat2D_to_file(dx_dxi_fp, dx_dxi_mat);
+    output_mat2D_to_file(dx_deta_fp, dx_deta_mat);
+    output_mat2D_to_file(dy_dxi_fp, dy_dxi_mat);
+    output_mat2D_to_file(dy_deta_fp, dy_deta_mat);
+
+    free(dx_dxi_mat);
+    free(dy_dxi_mat);
+    free(dx_deta_mat);
+    free(dy_deta_mat);
+
+    fclose(J_vals_fp);
+    fclose(dx_dxi_fp);
+    fclose(dx_deta_fp);
+    fclose(dy_dxi_fp);
+    fclose(dy_deta_fp);
+    fclose(dxi_dx_fp);
+    fclose(deta_dx_fp);
+    fclose(dxi_dy_fp);
+    fclose(deta_dy_fp);
+
+}
+
+/* initializing the matrices coeffictions and jacobian matrixes according to the mesh
+and the flow field according to the free flow conditions
+argument list:
+Q           - 1D array of 3D matrix 
+J_vals_mat  - 1D array of 2D matrix
+dxi_dx_mat  - 1D array of 2D matrix
+dxi_dy_mat  - 1D array of 2D matrix
+deta_dx_mat - 1D array of 2D matrix
+deta_dy_mat - 1D array of 2D matrix
+x_vals_mat  - 1D array of 2D matrix
+y_vals_mat  - 1D array of 2D matrix */
+void initialize(double *Q, double *J_vals_mat, double *dxi_dx_mat,
+                double *dxi_dy_mat, double *deta_dx_mat,
+                double *deta_dy_mat, double *x_vals_mat, double *y_vals_mat)
+{
+    initialize_flow_field(Q);
+    matrices_coeffic_and_Jacobian(J_vals_mat, dxi_dx_mat, dxi_dy_mat,
+                                  deta_dx_mat, deta_dy_mat, x_vals_mat,
+                                  y_vals_mat);
+}
+
+/* calculating the RHS with smoothing to the S 1D array (3D matrix)
+argument list:
+S                 - 1D array of 3D matrix 
+W                 - 1D array of 2D matrix
+Q                 - 1D array of 3D matrix 
+J_vals_mat        - 1D array of 2D matrix
+dxi_dx_mat        - 1D array of 2D matrix
+dxi_dy_mat        - 1D array of 2D matrix
+deta_dx_mat       - 1D array of 2D matrix
+deta_dy_mat       - 1D array of 2D matrix
+s2, rspec, qv, dd - 1D work arrays
+ */
 void RHS(double *S, double *W, double *Q, double *J_vals_mat,
          double *dxi_dx_mat, double *dxi_dy_mat, double *deta_dx_mat,
          double *deta_dy_mat, double *s2, double *rspec, double *qv, double *dd)
@@ -1014,6 +1210,12 @@ int i, j, k;
                }
 }
 
+/* calculating Q at the next time step to the next_Q 1D array (3D matrix)
+argument list:
+next_Q     - 1D array of 2D matrix
+current_Q  - 1D array of 3D matrix 
+S          - 1D array of 3D matrix 
+J_vals_mat - 1D array of 2D matrix */
 void advance_Q(double *next_Q, double *current_Q ,double *S, double *J_vals_mat)
 {
     int index;
@@ -1034,6 +1236,10 @@ void advance_Q(double *next_Q, double *current_Q ,double *S, double *J_vals_mat)
     }
 }
 
+/* copying a 3D matrix (1D array) from the src to the dst
+argument list:
+dst - 1D array of 3D matrix 
+src - 1D array of 3D matrix */
 void copy_3Dmat_to_3Dmat(double *dst, double *src)
 {
     for (int i = 0; i < ni; i++) {
@@ -1046,6 +1252,22 @@ void copy_3Dmat_to_3Dmat(double *dst, double *src)
     }
 }
 
+/* adding smoothing to the RHS.
+argument list:
+q                 - 1D array of 3D matrix 
+s                 - 1D array of 3D matrix 
+jac               - 1D array of 2D matrix
+xx                - 1D array of 2D matrix
+xy                - 1D array of 2D matrix
+yx                - 1D array of 2D matrix
+yy                - 1D array of 2D matrix
+id                - ni
+jd                - nj
+s2, rspec, qv, dd - 1D work arrays
+epse              - smoothing coefficient
+gamma             - heat capacity ratio
+fsmach            - mach number in infinity
+dt                - delta time */
 int smooth(double *q, double *s, double *jac, double *xx, double *xy, 
            double *yx, double *yy, int id, int jd, double *s2, 
            double *rspec, double *qv, double *dd,
@@ -1176,6 +1398,15 @@ int smooth(double *q, double *s, double *jac, double *xx, double *xy,
     return 0;
 }
 
+/* applying the boundary conditions according to the programming tips 
+argument list:
+Q                 - 1D array of 3D matrix 
+J_vals_mat        - 1D array of 2D matrix
+dxi_dx_mat        - 1D array of 2D matrix
+dxi_dy_mat        - 1D array of 2D matrix
+deta_dx_mat       - 1D array of 2D matrix
+deta_dy_mat       - 1D array of 2D matrix
+*/
 void apply_BC(double *Q, double *J_vals_mat, double *dxi_dx_mat,
               double *dxi_dy_mat, double *deta_dx_mat, double *deta_dy_mat)
 {
@@ -1266,10 +1497,10 @@ void apply_BC(double *Q, double *J_vals_mat, double *dxi_dx_mat,
 
 }
 
-/* output data;
+/* output a 1D array (2D matrix) to a file
 argument list:
-fp - file pointer to output file
-data - 1D array of the output valuse */
+fp   - file pointer to output file
+data - 1D array of 2D matrix */
 void output_mat2D_to_file(FILE *fp, double *data)
 {
     int i, j, j_max = nj - 1, i_max = ni - 1;
@@ -1282,11 +1513,11 @@ void output_mat2D_to_file(FILE *fp, double *data)
     }
 }
 
-/* output data;
+/* output a 1D array (3D matrix) to a file
 argument list:
-fp - file pointer to output file
-data - 1D array of 3D matrix
-layer - the k value */
+fp    - file pointer to output file
+data  - 1D array of 3D matrix 
+layer - the third direction index */
 void output_layer_of_mat3D_to_file(FILE *fp, double *data, int layer)
 {
     int i, j, j_max = nj - 1, i_max = ni - 1;
@@ -1299,6 +1530,13 @@ void output_layer_of_mat3D_to_file(FILE *fp, double *data, int layer)
     }
 }
 
+/* calculating the jacobian martices of the xi direction 
+argument list:
+dst         - 1D array of 3D matrix
+Q           - 1D array of 3D matrix
+dxi_dx_mat  - 1D array of 2D matrix
+dxi_dy_mat  - 1D array of 2D matrix
+i, j        - the points coordinates */
 void calculate_A_hat_j_const(double *dst, double *Q, double *dxi_dx_mat,
                              double *dxi_dy_mat, int i, int j)
 {
@@ -1343,6 +1581,13 @@ void calculate_A_hat_j_const(double *dst, double *Q, double *dxi_dx_mat,
 
 }
 
+/* calculating the jacobian martices of the eta direction 
+argument list:
+dst          - 1D array of 3D matrix
+Q            - 1D array of 3D matrix
+deta_dx_mat  - 1D array of 2D matrix
+deta_dy_mat  - 1D array of 2D matrix
+i, j         - the points coordinates */
 void calculate_B_hat_i_const(double *dst, double *Q, double *deta_dx_mat,
                              double *deta_dy_mat, int i, int j)
 {
@@ -1386,6 +1631,23 @@ void calculate_B_hat_i_const(double *dst, double *Q, double *deta_dx_mat,
     dst[offset3d(j, 3, 3, nj, 4)] = Gamma * theta;
 }
 
+/* adding smoothing to the LHSX.
+argument list:
+q                       - 1D array of 3D matrix 
+xx                      - 1D array of 2D matrix
+xy                      - 1D array of 2D matrix
+id                      - ni
+jd                      - nj
+a                       - 1D array of 3D matrix 
+b                       - 1D array of 3D matrix 
+c                       - 1D array of 3D matrix 
+j                       - the second direction index
+jac                     - 1D array of 2D matrix
+drr, drp, rspec, qv, dd - 1D work arrays
+epsi                    - smoothing coefficient
+gamma                   - heat capacity ratio
+fsmach                  - mach number in infinity
+dt                      - delta time */
 int smoothx(double *q, double *xx, double *xy, int id, int jd, double *a,
 	        double *b, double *c, int j,double *jac, double *drr, double *drp, 
             double *rspec, double *qv, double *dd,
@@ -1457,6 +1719,23 @@ int smoothx(double *q, double *xx, double *xy, int id, int jd, double *a,
     return 0;
 }
 
+/* adding smoothing to the LHSX.
+argument list:
+q                       - 1D array of 3D matrix 
+yx                      - 1D array of 2D matrix
+yy                      - 1D array of 2D matrix
+id                      - ni
+jd                      - nj
+a                       - 1D array of 3D matrix 
+b                       - 1D array of 3D matrix 
+c                       - 1D array of 3D matrix 
+i                       - the first direction index
+jac                     - 1D array of 2D matrix
+drr, drp, rspec, qv, dd - 1D work arrays
+epsi                    - smoothing coefficient
+gamma                   - heat capacity ratio
+fsmach                  - mach number in infinity
+dt                      - delta time */
 int smoothy(double *q, double *yx, double *yy, int id, int jd, double *a,
 	        double *b, double *c, int i,double *jac, double *drr, double *drp, 
             double *rspec, double *qv, double *dd,
@@ -1531,20 +1810,19 @@ int smoothy(double *q, double *yx, double *yy, int id, int jd, double *a,
     return 0;
 }
 
+/* calculating the LHS at the xi direction 
+argument list:
+A          - 1D array of 3D matrix 
+B          - 1D array of 3D matrix 
+C          - 1D array of 3D matrix 
+Q          - 1D array of 3D matrix 
+dxi_dx_mat - 1D array of 2D matrix
+dxi_dy_mat - 1D array of 2D matrix
+j          - the second direction index */
 void LHSX(double *A, double *B, double *C, double *Q,
           double *dxi_dx_mat, double *dxi_dy_mat, int j)
 {
     int i, n, m; 
-
-    // for (i = 0; i < max_ni_nj; i++) {
-    //     for (n = 0; n < 4; n++) {
-    //         for (m = 0; m < 4; m++) {
-    //                 A[offset3d(i, m, n, max_ni_nj, 4)] = 0;
-    //                 B[offset3d(i, m, n, max_ni_nj, 4)] = 0;
-    //                 C[offset3d(i, m, n, max_ni_nj, 4)] = 0;
-    //         }
-    //     }
-    // }
 
     for (i = 0; i < ni; i++) {
         calculate_A_hat_j_const(B, Q, dxi_dx_mat, dxi_dy_mat, i, j);
@@ -1571,6 +1849,15 @@ void LHSX(double *A, double *B, double *C, double *Q,
     }
 }
 
+/* calculating the LHS at the eta direction 
+argument list:
+A           - 1D array of 3D matrix 
+B           - 1D array of 3D matrix 
+C           - 1D array of 3D matrix 
+Q           - 1D array of 3D matrix 
+deta_dx_mat - 1D array of 2D matrix
+deta_dy_mat - 1D array of 2D matrix
+i          - the second direction index */
 void LHSY(double *A, double *B, double *C, double *Q,
           double *deta_dx_mat, double *deta_dy_mat, int i)
 {
@@ -1612,6 +1899,16 @@ void LHSY(double *A, double *B, double *C, double *Q,
     }
 }
 
+/* 4x4 block tri-diagonal matrix solver 
+argument list:
+a  - 1D array of 3D matrix 
+b  - 1D array of 3D matrix 
+c  - 1D array of 3D matrix 
+f  - 1D array of 2D matrix 
+kd - ni or nj
+ks - 1
+ke - ni-2 or nj-2
+*/
 int btri4s(double *a, double *b, double *c, double *f, int kd, int ks, int ke)
 {
   /* Local variables */
@@ -1752,6 +2049,9 @@ int btri4s(double *a, double *b, double *c, double *f, int kd, int ks, int ke)
   
 }
 
+/* calculating the L2Norm
+argument list:
+s - 1D array of 3D matrix */
 double calculate_S_norm(double *S)
 {
     double sum = 0, value;
@@ -1767,7 +2067,23 @@ double calculate_S_norm(double *S)
     return sqrt(sum);
 }
 
-/* returns S_Norm */
+/* preforming the step of in teh solver;
+returns S_Norm
+argument list:
+A                           - 1D array of 3D matrix 
+B                           - 1D array of 3D matrix 
+C                           - 1D array of 3D matrix 
+D                           - 1D array of 2D matrix 
+current_Q                   - 1D array of 3D matrix 
+S                           - 1D array of 3D matrix 
+W                           - 1D array of 2D matrix
+J_vals_mat                  - 1D array of 2D matrix
+dxi_dx_mat                  - 1D array of 2D matrix
+dxi_dy_mat                  - 1D array of 2D matrix
+deta_dx_mat                 - 1D array of 2D matrix
+deta_dy_mat                 - 1D array of 2D matrix
+s2, drr, drp, rspec, qv, dd - 1D work arrays
+*/
 double step(double *A, double *B, double *C, double *D, double *current_Q,
           double *S, double *W, double *J_vals_mat, double *dxi_dx_mat,
           double *dxi_dy_mat, double *deta_dx_mat, double *deta_dy_mat,
@@ -1826,89 +2142,4 @@ double step(double *A, double *B, double *C, double *D, double *current_Q,
     }
 
     return calculate_S_norm(S);
-}
-
-void matrices_coeffic_and_Jacobian(double *J_vals_mat, double *dxi_dx_mat,
-                                   double *dxi_dy_mat, double *deta_dx_mat,
-                                   double *deta_dy_mat, double *x_vals_mat,
-                                   double *y_vals_mat)
-{
-    double *dx_dxi_mat = malloc(sizeof(double) * ni * nj);
-    double *dy_dxi_mat = malloc(sizeof(double) * ni * nj);
-    double *dx_deta_mat = malloc(sizeof(double) * ni * nj);
-    double *dy_deta_mat = malloc(sizeof(double) * ni * nj);
-
-    for (int i = 0; i < ni; i++) {
-        for (int j = 0; j < nj; j++) {
-            int index = offset2d(i, j, ni);
-            double dx_dxi = first_deriv(x_vals_mat, 'i', i, j);
-            double dx_deta = first_deriv(x_vals_mat, 'j', i, j);
-            double dy_dxi = first_deriv(y_vals_mat, 'i', i, j);
-            double dy_deta = first_deriv(y_vals_mat, 'j', i, j);
-
-            dx_dxi_mat[index] = dx_dxi;
-            dy_dxi_mat[index] = dy_dxi;
-            dx_deta_mat[index] = dx_deta;
-            dy_deta_mat[index] = dy_deta;
-
-            double J = 1.0 / (dx_dxi * dy_deta - dy_dxi * dx_deta);
-            J_vals_mat[index] = J;
-
-            dxi_dx_mat[index]  =   J * dy_deta;
-            dxi_dy_mat[index]  = - J * dx_deta;
-            deta_dx_mat[index] = - J * dy_dxi;
-            deta_dy_mat[index] =   J * dx_dxi;
-        }
-    }
-
-
-    FILE *J_vals_fp = fopen("./checks/J_vals_mat.txt", "wt");
-
-    FILE *dxi_dx_fp  = fopen("./checks/dxi_dx.txt", "wt");
-    FILE *dxi_dy_fp  = fopen("./checks/dxi_dy.txt", "wt");
-    FILE *deta_dx_fp = fopen("./checks/deta_dx.txt", "wt");
-    FILE *deta_dy_fp = fopen("./checks/deta_dy.txt", "wt");
-
-    FILE *dx_dxi_fp  = fopen("./checks/dx_dxi.txt", "wt");
-    FILE *dy_dxi_fp  = fopen("./checks/dy_dxi.txt", "wt");
-    FILE *dx_deta_fp = fopen("./checks/dx_deta.txt", "wt");
-    FILE *dy_deta_fp = fopen("./checks/dy_deta.txt", "wt");
-
-    output_mat2D_to_file(J_vals_fp, J_vals_mat);
-
-    output_mat2D_to_file(dxi_dx_fp, dxi_dx_mat);
-    output_mat2D_to_file(deta_dx_fp, deta_dx_mat);
-    output_mat2D_to_file(dxi_dy_fp, dxi_dy_mat);
-    output_mat2D_to_file(deta_dy_fp, deta_dy_mat);
-
-    output_mat2D_to_file(dx_dxi_fp, dx_dxi_mat);
-    output_mat2D_to_file(dx_deta_fp, dx_deta_mat);
-    output_mat2D_to_file(dy_dxi_fp, dy_dxi_mat);
-    output_mat2D_to_file(dy_deta_fp, dy_deta_mat);
-
-    free(dx_dxi_mat);
-    free(dy_dxi_mat);
-    free(dx_deta_mat);
-    free(dy_deta_mat);
-
-    fclose(J_vals_fp);
-    fclose(dx_dxi_fp);
-    fclose(dx_deta_fp);
-    fclose(dy_dxi_fp);
-    fclose(dy_deta_fp);
-    fclose(dxi_dx_fp);
-    fclose(deta_dx_fp);
-    fclose(dxi_dy_fp);
-    fclose(deta_dy_fp);
-
-}
-
-void initialize(double *Q, double *J_vals_mat, double *dxi_dx_mat,
-                double *dxi_dy_mat, double *deta_dx_mat,
-                double *deta_dy_mat, double *x_vals_mat, double *y_vals_mat)
-{
-    initialize_flow_field(Q);
-    matrices_coeffic_and_Jacobian(J_vals_mat, dxi_dx_mat, dxi_dy_mat,
-                                  deta_dx_mat, deta_dy_mat, x_vals_mat,
-                                  y_vals_mat);
 }
