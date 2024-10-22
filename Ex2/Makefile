@@ -1,5 +1,6 @@
 solver: build_solver run_solver clean_solver  
 	@echo solver done
+
 build_solver: solver.c
 	gcc -g -Wall -Wextra ./solver.c -lm -o solver
 
@@ -12,6 +13,7 @@ clean_solver:
 ##########################################################
 mesh_generate: build_mesh_generate run_mesh_generate clean_mesh_generate  
 	@echo mesh_generate done
+	
 build_mesh_generate: mesh_generate.c
 	gcc -g -Wall -Wextra ./mesh_generate.c -lm -o mesh_generate
 
@@ -22,7 +24,7 @@ clean_mesh_generate:
 	rm mesh_generate
 
 ##########################################################
-automat: build_solver create_and_run_automat clean_solver
+automat: create_and_run_automat 
 	@echo automat done
 
 create_and_run_automat:

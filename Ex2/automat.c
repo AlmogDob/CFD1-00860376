@@ -34,12 +34,12 @@ int main()
 
     fprintf(fp, "make build_solver\n");
 
-    for (int i = 1; i <= 10; i++) {
+    for (int i = 1; i <= 20; i++) {
         strncpy(temp_dir, parent_dir, BUFSIZ);
         strncat(temp_dir, "/input", BUFSIZ/2);
         sprintf(temp1, "%d.txt", i);
         strncat(temp_dir, temp1, BUFSIZ/2);
-        create_input_file(temp_dir, 11, 25, 39, 0, 0, 0, 1.5, 0, 1.225, 101325, (i*2)*1e-5, 1.4, 0.06, 1e6);
+        create_input_file(temp_dir, 11, 25, 39, 0, 0, 0, 1.5, 0, 1.225, 101325, (i*1)*1e-5, 1.4, 0.06, 1e6);
 
 
         strncpy(temp_dir, parent_dir, BUFSIZ);
@@ -62,22 +62,6 @@ int main()
 
     }
     fprintf(fp, "make clean_solver\n");
-
-    // int id = fork();
-    // if (id == 0) {
-    //     printf("running solver\n");
-    //     execlp("./solver",
-    //            "./solver",
-    //            "./input.txt",
-    //            "./mesh_output.txt",
-    //            "./auto_results",
-    //            "70",
-    //            NULL);
-
-    // } else {
-    //     while (wait(NULL) != -1);
-    //     printf("finished\n");
-    // }
 
     return 0;
 }
