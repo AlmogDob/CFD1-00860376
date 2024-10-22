@@ -42,6 +42,8 @@ epse
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
+#include <sys/stat.h>
+#include <dirent.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -54,6 +56,7 @@ epse
 #define dprintF(expr) do{printf("%d: ", __LINE__); printf(#expr " = %g\n", expr);} while(0)     /* macro for easy debuging*/
 #define dprintD(expr) do{printf("%d: ", __LINE__); printf(#expr " = %g\n", expr);} while(0)     /* macro for easy debuging*/
 
+int create_empty_dir(char *parent_directory);
 void read_input(char *input_dir, char *mesh_dir, double *x_vals_mat,
                 double *y_vals_mat);
 void read_mesh_file(FILE *mesh_fp, double *x_vals_mat,
@@ -137,7 +140,10 @@ void initialize(double *Q, double *J_vals_mat, double *dxi_dx_mat,
 /* global variables */
 int ni, nj, max_ni_nj, i_TEL, i_LE, i_TEU, j_TEL, j_LE, j_TEU;
 double Mach_inf, angle_of_attack_deg, angle_of_attack_rad, density,
-environment_pressure, delta_t, Gamma, epse, epsi;
+environment_pressure, delta_t, Gamma, epse, epsi, max_iteration;
+
+int auto_run = 0;
+char auto_dir[MAXWORD], auto_run_num[MAXWORD];
 
 int main(int argc, char const *argv[])
 {
@@ -147,14 +153,19 @@ int main(int argc, char const *argv[])
     double *x_vals_mat, *y_vals_mat, *J_vals_mat, *first_Q,
     *current_Q, *next_Q, *S, *W, *dxi_dx_mat, *dxi_dy_mat, *deta_dx_mat,
     *deta_dy_mat, *s2, *rspec, *qv, *dd, *U_mat, *V_mat, *A, *B, *C, *D,
-    *drr, *drp, max_S_norm = 0, current_S_norm;
+    *drr, *drp, max_S_norm = 0, current_S_norm, first_S_norm;
     
     int i_index, j_index, k_index;
 
+    FILE *mesh_fp, *iter_fp;
+
 /* getting the input directory and mesh directory*/
-    if (--argc != 2) {
-        fprintf(stderr, "%s:%d: [Error] not right usage... Usage: main 'input file' 'mesh file'\n", __FILE__, __LINE__);
+    if (--argc != 2 && argc != 4) {
+        fprintf(stderr, "%s:%d: [Error] not right usage... Usage: main 'input file' 'mesh file' // optional: 'auto dir' 'num'\n", __FILE__, __LINE__);
         return -1;
+    }
+    if (argc == 4) {
+        auto_run = 1;
     }
 
     strncpy(input_dir, (*(++argv)), MAXDIR);
@@ -171,10 +182,15 @@ int main(int argc, char const *argv[])
         return -1;
     }
 
+    if (auto_run) {
+        strncpy(auto_dir, (*(++argv)), MAXDIR);
+        strncpy(auto_run_num, (*(++argv)), MAXDIR);
+    }
+
 /*------------------------------------------------------------*/
 
 /* getting ni, nj*/
-    FILE *mesh_fp = fopen(mesh_dir, "rt");
+    mesh_fp = fopen(mesh_dir, "rt");
     if (!mesh_fp) {
         fprintf(stderr, "%s:%d: [Error] opening input file: %s\n",__FILE__, __LINE__, strerror(errno));
         exit(1);
@@ -346,6 +362,7 @@ int main(int argc, char const *argv[])
 
 /* Checking the input */
     printf("--------------------\n");
+    dprintINT(auto_run);
     dprintINT(ni);
     dprintINT(nj);
     dprintINT(i_TEL);
@@ -362,15 +379,28 @@ int main(int argc, char const *argv[])
     dprintD(Gamma);
     dprintINT(max_ni_nj);
     dprintD(epse);
+    dprintD(max_iteration);
     printf("--------------------\n");
 
 /*------------------------------------------------------------*/
+
+    if (auto_run) {
+        char temp_dir[MAXDIR];
+        strncpy(temp_dir, auto_dir, MAXWORD/2);
+        strncat(temp_dir, "/results", MAXWORD/2);
+        strncat(temp_dir, auto_run_num, MAXWORD/2);
+        create_empty_dir(temp_dir);
+        strncat(temp_dir, "/iterations.txt", MAXWORD/2);
+        iter_fp = fopen(temp_dir, "wt");
+    } else {
+        iter_fp = fopen("./results/iterations.txt", "wt");
+    }
 
     initialize(current_Q, J_vals_mat, dxi_dx_mat, dxi_dy_mat, deta_dx_mat,
                deta_dy_mat, x_vals_mat, y_vals_mat);
     copy_3Dmat_to_3Dmat(first_Q, current_Q);
     
-    for (int iteration = 0; iteration < 1e6; iteration++) {
+    for (int iteration = 0; iteration < max_iteration; iteration++) {
         apply_BC(current_Q, J_vals_mat, dxi_dx_mat, dxi_dy_mat, deta_dx_mat, deta_dy_mat);
         current_S_norm = step(A, B, C, D, current_Q, S, W, J_vals_mat,
                               dxi_dx_mat, dxi_dy_mat, deta_dx_mat,
@@ -378,21 +408,19 @@ int main(int argc, char const *argv[])
         if (max_S_norm < fabs(current_S_norm)) {
             max_S_norm = fabs(current_S_norm);
         }
+        if (iteration == 0) {
+            first_S_norm = current_S_norm;
+        }
         advance_Q(next_Q, current_Q, S, J_vals_mat);
         copy_3Dmat_to_3Dmat(current_Q, next_Q);
         
-        printf("%d: %g\n", iteration, current_S_norm);
+        printf("%5d: %0.10f\n", iteration, current_S_norm);
+        fprintf(iter_fp, "%5d %f\n", iteration, current_S_norm);
 
-        if (current_S_norm/ max_S_norm < 1e-6 || current_S_norm == 0 || isnan(current_S_norm)) {
+        if (fabs(current_S_norm) / first_S_norm < 1e-6 || current_S_norm == 0 || isnan(current_S_norm)) {
             break;
         }
     }
-
-    // int layer;
-    // for (layer = 0; layer < 4; layer++) {
-    //     printf("____________________________~%d~______________________________\n", layer);
-    //     print_layer_of_mat3D(current_Q, layer);
-    // }
 
     output_solution(current_Q, U_mat, V_mat, x_vals_mat, y_vals_mat, dxi_dx_mat, dxi_dy_mat, deta_dx_mat, deta_dy_mat);
     
@@ -423,6 +451,49 @@ int main(int argc, char const *argv[])
     free(drr);
     free(drp);
 
+    fclose(iter_fp);
+
+    return 0;
+}
+
+/* if allready exisest, delet all the files inside 
+returns 0 on success
+this functin handls the errors so on fail just quit */
+int create_empty_dir(char *parent_directory)
+{
+    char path_to_remove[BUFSIZ];
+
+    if (mkdir(parent_directory, 0777) == -1) {
+        if (errno == EEXIST) {
+            DIR *dir = opendir(parent_directory);
+            if (dir == NULL) {
+                fprintf(stderr, "%s:%d: [Error] problem opening '%s': %s\n", __FILE__, __LINE__, parent_directory, strerror(errno));
+                return 1;
+            }
+            struct dirent* entity;
+            entity = readdir(dir);
+            while (entity != NULL) {   /* directory is not empty */
+                strncpy(path_to_remove, parent_directory, BUFSIZ);
+                strncat(path_to_remove, "/", BUFSIZ/2);
+                strncat(path_to_remove, entity->d_name, BUFSIZ);
+                if (entity->d_type == DT_REG) {
+                    if (remove(path_to_remove) != 0) {
+                        fprintf(stderr, "%s:%d: [Error] problem removing '%s': %s\n", __FILE__, __LINE__, path_to_remove, strerror(errno));
+                        return 1;
+                    }
+                }
+                entity = readdir(dir);
+            }
+
+
+            closedir(dir);
+
+            return 0;
+        }
+
+        fprintf(stderr, "%s:%d: [Error] problem making '%s': %s\n", __FILE__, __LINE__, parent_directory, strerror(errno));
+        return 1;
+    }
     return 0;
 }
 
@@ -505,6 +576,9 @@ void read_input_file(FILE *fp)
             fscanf(fp, "%g", &temp);
             epse = (double)temp;
             epsi = epse * 2;
+        } else if (!strcmp(current_word, "max_iteration")) {
+            fscanf(fp, "%g", &temp);
+            max_iteration = (double)temp;
         } else if (!strcmp(current_word, "i_TEL")) {
             fscanf(fp, "%d", &i_TEL);
         } else if (!strcmp(current_word, "i_LE")) {
@@ -554,19 +628,86 @@ void output_solution(double *current_Q, double *U_mat, double *V_mat,
             V_mat[index] = V;
         }
     }
-    FILE *rho_u_fp = fopen("./results/rho_u.txt", "wt");
-    FILE *rho_v_fp = fopen("./results/rho_v.txt", "wt");
-    FILE *x_fp = fopen("./results/x_mat.txt", "wt");
-    FILE *y_fp = fopen("./results/y_mat.txt", "wt");
-    FILE *U_fp = fopen("./results/U_mat.txt", "wt");
-    FILE *V_fp = fopen("./results/V_mat.txt", "wt");
-    FILE *Q0_fp = fopen("./results/Q0_mat.txt", "wt");
-    FILE *Q1_fp = fopen("./results/Q1_mat.txt", "wt");
-    FILE *Q2_fp = fopen("./results/Q2_mat.txt", "wt");
-    FILE *Q3_fp = fopen("./results/Q3_mat.txt", "wt");
 
-    output_layer_of_mat3D_to_file(rho_u_fp, current_Q, 1);
-    output_layer_of_mat3D_to_file(rho_v_fp, current_Q, 2);
+    FILE *x_fp;
+    FILE *y_fp;
+    FILE *U_fp;
+    FILE *V_fp;
+    FILE *Q0_fp; 
+    FILE *Q1_fp; 
+    FILE *Q2_fp; 
+    FILE *Q3_fp; 
+    FILE *ni_nj_fp;
+
+    if (auto_run) {
+        char temp_dir[MAXDIR];
+
+        strncpy(temp_dir, auto_dir, MAXWORD/2);
+        strncat(temp_dir, "/results", MAXWORD/2);
+        strncat(temp_dir, auto_run_num, MAXWORD/2);
+        strncat(temp_dir, "/x_mat.txt", MAXWORD/2);
+        x_fp = fopen(temp_dir, "wt");
+
+        strncpy(temp_dir, auto_dir, MAXWORD/2);
+        strncat(temp_dir, "/results", MAXWORD/2);
+        strncat(temp_dir, auto_run_num, MAXWORD/2);
+        strncat(temp_dir, "/y_mat.txt", MAXWORD/2);
+        y_fp = fopen(temp_dir, "wt");
+
+        strncpy(temp_dir, auto_dir, MAXWORD/2);
+        strncat(temp_dir, "/results", MAXWORD/2);
+        strncat(temp_dir, auto_run_num, MAXWORD/2);
+        strncat(temp_dir, "/U_mat.txt", MAXWORD/2);
+        U_fp = fopen(temp_dir, "wt");
+
+        strncpy(temp_dir, auto_dir, MAXWORD/2);
+        strncat(temp_dir, "/results", MAXWORD/2);
+        strncat(temp_dir, auto_run_num, MAXWORD/2);
+        strncat(temp_dir, "/V_mat.txt", MAXWORD/2);
+        V_fp = fopen(temp_dir, "wt");
+
+        strncpy(temp_dir, auto_dir, MAXWORD/2);
+        strncat(temp_dir, "/results", MAXWORD/2);
+        strncat(temp_dir, auto_run_num, MAXWORD/2);
+        strncat(temp_dir, "/Q0_mat.txt", MAXWORD/2);
+        Q0_fp = fopen(temp_dir, "wt");
+
+        strncpy(temp_dir, auto_dir, MAXWORD/2);
+        strncat(temp_dir, "/results", MAXWORD/2);
+        strncat(temp_dir, auto_run_num, MAXWORD/2);
+        strncat(temp_dir, "/Q1_mat.txt", MAXWORD/2);
+        Q1_fp = fopen(temp_dir, "wt");
+
+        strncpy(temp_dir, auto_dir, MAXWORD/2);
+        strncat(temp_dir, "/results", MAXWORD/2);
+        strncat(temp_dir, auto_run_num, MAXWORD/2);
+        strncat(temp_dir, "/Q2_mat.txt", MAXWORD/2);
+        Q2_fp = fopen(temp_dir, "wt");
+
+        strncpy(temp_dir, auto_dir, MAXWORD/2);
+        strncat(temp_dir, "/results", MAXWORD/2);
+        strncat(temp_dir, auto_run_num, MAXWORD/2);
+        strncat(temp_dir, "/Q3_mat.txt", MAXWORD/2);
+        Q3_fp = fopen(temp_dir, "wt");
+
+        strncpy(temp_dir, auto_dir, MAXWORD/2);
+        strncat(temp_dir, "/results", MAXWORD/2);
+        strncat(temp_dir, auto_run_num, MAXWORD/2);
+        strncat(temp_dir, "/ni_nj.txt", MAXWORD/2);
+        ni_nj_fp = fopen(temp_dir, "wt");
+
+    } else {
+        x_fp = fopen("./results/x_mat.txt", "wt");
+        y_fp = fopen("./results/y_mat.txt", "wt");
+        U_fp = fopen("./results/U_mat.txt", "wt");
+        V_fp = fopen("./results/V_mat.txt", "wt");
+        Q0_fp = fopen("./results/Q0_mat.txt", "wt");
+        Q1_fp = fopen("./results/Q1_mat.txt", "wt");
+        Q2_fp = fopen("./results/Q2_mat.txt", "wt");
+        Q3_fp = fopen("./results/Q3_mat.txt", "wt");
+        ni_nj_fp = fopen("./results/ni_nj.txt", "wt");
+    }
+
     output_mat2D_to_file(x_fp, x_vals_mat);
     output_mat2D_to_file(y_fp, y_vals_mat);
     output_mat2D_to_file(U_fp, U_mat);
@@ -575,9 +716,8 @@ void output_solution(double *current_Q, double *U_mat, double *V_mat,
     output_layer_of_mat3D_to_file(Q1_fp, current_Q, 1);
     output_layer_of_mat3D_to_file(Q2_fp, current_Q, 2);
     output_layer_of_mat3D_to_file(Q3_fp, current_Q, 3);
+    fprintf(ni_nj_fp, "%d %d", ni, nj);
 
-    fclose(rho_u_fp);
-    fclose(rho_v_fp);
     fclose(x_fp);
     fclose(y_fp);
     fclose(U_fp);
@@ -586,6 +726,7 @@ void output_solution(double *current_Q, double *U_mat, double *V_mat,
     fclose(Q1_fp);
     fclose(Q2_fp);
     fclose(Q3_fp);
+    fclose(ni_nj_fp);
 }
 
 /* converts a 2D index into 1D index
@@ -1435,15 +1576,15 @@ void LHSY(double *A, double *B, double *C, double *Q,
 {
     int j, n, m; 
 
-    // for (j = 0; j < max_ni_nj; j++) {
-    //     for (n = 0; n < 4; n++) {
-    //         for (m = 0; m < 4; m++) {
-    //                 A[offset3d(j, m, n, max_ni_nj, 4)] = 0;
-    //                 B[offset3d(j, m, n, max_ni_nj, 4)] = 0;
-    //                 C[offset3d(j, m, n, max_ni_nj, 4)] = 0;
-    //         }
-    //     }
-    // }
+    for (j = 0; j < max_ni_nj; j++) {
+        for (n = 0; n < 4; n++) {
+            for (m = 0; m < 4; m++) {
+                    A[offset3d(j, m, n, max_ni_nj, 4)] = 0;
+                    B[offset3d(j, m, n, max_ni_nj, 4)] = 0;
+                    C[offset3d(j, m, n, max_ni_nj, 4)] = 0;
+            }
+        }
+    }
 
     for (j = 0; j < nj; j++) {
         calculate_B_hat_i_const(B, Q, deta_dx_mat, deta_dy_mat, i, j);
@@ -1647,7 +1788,6 @@ double step(double *A, double *B, double *C, double *D, double *current_Q,
                     fprintf(stderr, "%s:%d: [Erorr] problem with smoothx in LHSX\n", __FILE__, __LINE__);
                     exit(1);
                 }
-       
         for (k = 0; k < 4; k++) {
             for (i = 0; i < ni; i++) {
                 D[offset2d(i, k, ni)] = S[offset3d(i, j, k, ni, nj)];
