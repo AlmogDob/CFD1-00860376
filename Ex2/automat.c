@@ -34,12 +34,26 @@ int main()
 
     fprintf(fp, "make build_solver\n");
 
-    for (int i = 1; i <= 20; i++) {
+    for (int i = 1; i <= 11; i++) {
         strncpy(temp_dir, parent_dir, BUFSIZ);
         strncat(temp_dir, "/input", BUFSIZ/2);
         sprintf(temp1, "%d.txt", i);
         strncat(temp_dir, temp1, BUFSIZ/2);
-        create_input_file(temp_dir, 11, 25, 39, 0, 0, 0, 1.5, 0, 1.225, 101325, (i*1)*1e-5, 1.4, 0.06, 1e6);
+        create_input_file(temp_dir,
+                          11,           /* i_TEL                */
+                          25,           /* i_LE                 */
+                          39,           /* i_TEU                */
+                          0,            /* j_TEL                */
+                          0,            /* j_LE                 */
+                          0,            /* j_TEU                */
+                          0.9+(i-1)*0.6/10, /* Mach_inf             */
+                          0,            /* angle_of_attack_deg  */
+                          1.225,        /* density              */
+                          101325,       /* environment_pressure */
+                          3.5e-4,       /* delta_t              */
+                          1.4,          /* Gamma                */
+                          0.06,         /* epse                 */
+                          1e6);         /* max_iteration        */
 
 
         strncpy(temp_dir, parent_dir, BUFSIZ);

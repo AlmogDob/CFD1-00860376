@@ -734,7 +734,7 @@ void output_solution(double *current_Q, double *U_mat, double *V_mat,
     output_layer_of_mat3D_to_file(Q1_fp, current_Q, 1);
     output_layer_of_mat3D_to_file(Q2_fp, current_Q, 2);
     output_layer_of_mat3D_to_file(Q3_fp, current_Q, 3);
-    fprintf(ni_nj_fp, "%d %d", ni, nj);
+    fprintf(ni_nj_fp, "%d %d %d %d %d", ni, nj, i_TEL, i_LE, i_TEU);
 
     fclose(x_fp);
     fclose(y_fp);
