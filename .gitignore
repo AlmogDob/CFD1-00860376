@@ -1,9 +1,7 @@
-*.mp4
 *.ilk
 *.obj
 *.pdb
 *.vscode
 *.exe
 *.json
-test.c
 test
