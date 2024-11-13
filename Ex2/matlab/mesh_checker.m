@@ -1,7 +1,10 @@
 clc; clear; close all;
-ni = 51;
-nj = 26;
 formatSpec = '%f';
+
+fileID = fopen("results\ni_nj.txt", "r");
+nd = fscanf(fileID,formatSpec);
+ni = nd(1);
+nj = nd(2);
 
 fileID = fopen("results\x_mat.txt", "r");
 xs = fscanf(fileID,formatSpec);

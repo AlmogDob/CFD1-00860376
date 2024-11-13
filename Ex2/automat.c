@@ -18,6 +18,11 @@ void create_input_file(char *file_name, int i_TEL, int i_LE, int i_TEU,
                        double angle_of_attack_deg, double density, 
                        double environment_pressure, double delta_t,
                        double Gamma, double epse, double max_iteration);
+void create_mesh_input_file(char *file_name, int t, int i_max, int j_max,
+                            int i_TEL, int i_LE, int i_TEU,
+                            double delta_y, double XSF, double YSF, 
+                            double x_int, double r, double omega,
+                            int phi, int psi);
 
 int main()
 {
@@ -34,7 +39,49 @@ int main()
 
     fprintf(fp, "make build_solver\n");
 
-    for (int i = 1; i <= 11; i++) {
+    double times[] = {1.00000000000000e-05,
+                      1.35387618002254e-05,
+                      1.83298071083244e-05,
+                      2.48162892283682e-05,
+                      3.35981828628378e-05,
+                      4.54877794700378e-05,
+                      6.15848211066027e-05,
+                      8.33782223471788e-05,
+                      0.000112883789168469,
+                      0.000152830673265877,
+                      0.000206913808111479,
+                      0.000280135676119887,
+                      0.000379269019073225,
+                      0.000513483290743755,
+                      0.000695192796177561,
+                      0.000941204967268067,
+                      0.00127427498570313,
+                      0.00172521054994204,
+                      0.00233572146909012,
+                      0.00316227766016838};
+
+    for (int i = 1; i <= 2; i++) {
+        
+        // strncpy(temp_dir, parent_dir, BUFSIZ);
+        // strncat(temp_dir, "/mesh_input", BUFSIZ/2);
+        // sprintf(temp1, "%d.txt", i);
+        // strncat(temp_dir, temp1, BUFSIZ/2);
+        // create_mesh_input_file(temp_dir, 
+        //                        0.12,            /* t       */
+        //                        50+4*(i-1),      /* i_max   */
+        //                        25+2*(i-1),      /* j_max   */
+        //                        11+4*(i-1),      /* i_TEL   */
+        //                        (50+4*(i-1))/2,  /* i_LE    */
+        //                        39+4*(i-1)*2,    /* i_TEU   */
+        //                        0.02,            /* delta_y */
+        //                        1.15,            /* XSF     */
+        //                        1.15,            /* YSF     */
+        //                        1.008930411365,  /* x_int   */
+        //                        0.001,           /* r       */
+        //                        1,               /* omega   */
+        //                        -1,              /* phi     */
+        //                        -1);             /* psi     */
+
         strncpy(temp_dir, parent_dir, BUFSIZ);
         strncat(temp_dir, "/input", BUFSIZ/2);
         sprintf(temp1, "%d.txt", i);
@@ -46,18 +93,29 @@ int main()
                           0,            /* j_TEL                */
                           0,            /* j_LE                 */
                           0,            /* j_TEU                */
-                          0.9+(i-1)*0.6/10, /* Mach_inf             */
+                          0.9,          /* Mach_inf             */
                           0,            /* angle_of_attack_deg  */
                           1.225,        /* density              */
                           101325,       /* environment_pressure */
-                          3.5e-4,       /* delta_t              */
+                          times[i-1],   /* delta_t              */
                           1.4,          /* Gamma                */
                           0.06,         /* epse                 */
                           1e6);         /* max_iteration        */
 
 
-        strncpy(temp_dir, parent_dir, BUFSIZ);
-        strncat(temp_dir, "/command_to_run.txt", BUFSIZ/2);
+        // strncpy(temp_input, parent_dir, BUFSIZ);
+        // strncat(temp_input, "/mesh_input", BUFSIZ/2);
+        // sprintf(temp1, "%d.txt", i);
+        // strncat(temp_input, temp1, BUFSIZ/2);
+
+        // print_command_to_file(fp,
+        //                     "./mesh_generate",
+        //                     temp_input,
+        //                     "./mesh_output.txt",
+        //                     "./auto_results",
+        //                     temp_num,
+        //                     NULL);
+
 
         strncpy(temp_input, parent_dir, BUFSIZ);
         strncat(temp_input, "/input", BUFSIZ/2);
@@ -161,4 +219,32 @@ void create_input_file(char *file_name, int i_TEL, int i_LE, int i_TEU,
     dfprintD(input_fp, Gamma);
     dfprintD(input_fp, epse);
     dfprintD(input_fp, max_iteration);
+
+    fclose(input_fp);
+}
+
+void create_mesh_input_file(char *file_name, double t, int i_max,
+                            int j_max, int i_TEL, int i_LE, int i_TEU,
+                            double delta_y, double XSF, double YSF, 
+                            double x_int, double r, double omega,
+                            int phi, int psi)
+{
+    FILE *fp = fopen(file_name, "wt");
+
+    dfprintD(t);
+    dfprintINT(i_max);
+    dfprintINT(j_max);
+    dfprintINT(i_TEL);
+    dfprintINT(i_LE);
+    dfprintINT(i_TEU);
+    dfprintD(delta_y);
+    dfprintD(XSF);
+    dfprintD(YSF);
+    dfprintD(x_int);
+    dfprintD(r);
+    dfprintD(omega);
+    dfprintINT(phi);
+    dfprintINT(psi);
+    
+    fclose(fp);
 }
