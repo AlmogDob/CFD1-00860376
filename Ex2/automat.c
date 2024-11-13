@@ -18,8 +18,8 @@ void create_input_file(char *file_name, int i_TEL, int i_LE, int i_TEU,
                        double angle_of_attack_deg, double density, 
                        double environment_pressure, double delta_t,
                        double Gamma, double epse, double max_iteration);
-void create_mesh_input_file(char *file_name, int t, int i_max, int j_max,
-                            int i_TEL, int i_LE, int i_TEU,
+void create_mesh_input_file(char *file_name, double t, int i_max,
+                            int j_max, int i_TEL, int i_LE, int i_TEU,
                             double delta_y, double XSF, double YSF, 
                             double x_int, double r, double omega,
                             int phi, int psi);
@@ -221,30 +221,4 @@ void create_input_file(char *file_name, int i_TEL, int i_LE, int i_TEU,
     dfprintD(input_fp, max_iteration);
 
     fclose(input_fp);
-}
-
-void create_mesh_input_file(char *file_name, double t, int i_max,
-                            int j_max, int i_TEL, int i_LE, int i_TEU,
-                            double delta_y, double XSF, double YSF, 
-                            double x_int, double r, double omega,
-                            int phi, int psi)
-{
-    FILE *fp = fopen(file_name, "wt");
-
-    dfprintD(t);
-    dfprintINT(i_max);
-    dfprintINT(j_max);
-    dfprintINT(i_TEL);
-    dfprintINT(i_LE);
-    dfprintINT(i_TEU);
-    dfprintD(delta_y);
-    dfprintD(XSF);
-    dfprintD(YSF);
-    dfprintD(x_int);
-    dfprintD(r);
-    dfprintD(omega);
-    dfprintINT(phi);
-    dfprintINT(psi);
-    
-    fclose(fp);
 }
